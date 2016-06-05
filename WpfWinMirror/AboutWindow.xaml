@@ -1,0 +1,52 @@
+﻿<Window
+    x:Class="WpfWinMirror.AboutWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:WpfWinMirror"
+    xmlns:props="clr-namespace:WpfWinMirror.Properties"
+    Title="About WPF WinMirror"
+    Width="480"
+    Height="320"
+    Background="Transparent"
+    AllowsTransparency="True"
+    WindowStyle="None"
+    RenderOptions.ClearTypeHint="Enabled"
+    FontFamily="Segoe UI"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStartupLocation="CenterScreen"
+    MouseLeftButtonDown="Window_MouseLeftButtonDown"
+    KeyDown="Window_KeyDown">
+    <Grid Margin="10">
+        <!-- バージョン情報ウィンドウにはグローエフェクトを付ける。内側だけでなく外側にもグローするため、マージンを付ける。 -->
+        <!-- Visual Studio の XAML プレビューでは一見マージンなしでも外側にグローが出ているように見えるが、実際に Window として起動するとクリップされる。 -->
+        <!-- 実は Window の内部要素にマージンを付ける方法だと、Alt + PrintScreen でスクリーンショットを撮るときにウィンドウの下まで映り込んでしまうが…… -->
+        <Border BorderBrush="DodgerBlue" BorderThickness="2" Background="Gray" CornerRadius="4"/>
+        <Border BorderBrush="DodgerBlue" BorderThickness="3" CornerRadius="4">
+            <Border.Effect>
+                <BlurEffect Radius="10" />
+            </Border.Effect>
+        </Border>
+        <StackPanel Grid.Row="0" HorizontalAlignment="Right" Margin="8">
+            <Button Content="r" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonClose"
+                    ToolTip="{x:Static props:Resources.buttonClose_ToolTip}" Click="buttonClose_Click"/>
+        </StackPanel>
+        <Grid Margin="30" >
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                <!-- .ico ファイルだと、例え 24x24 以外の画像を格納していてもその他の解像度ではボケる？ -->
+                <Image Source="Resources/WpfWinMirror_icon_48p.png" Width="48" Margin="12" VerticalAlignment="Center"/>
+                <TextBlock Text="WPF WinMirror" FontSize="26" Foreground="#EEEEEE" FontWeight="SemiBold" VerticalAlignment="Center"/>
+            </StackPanel>
+            <TextBlock Grid.Row="1" Name="textblockVersionNumber" Text="Version x.y" Foreground="#EEEEEE" HorizontalAlignment="Right"/>
+            <Separator Grid.Row="3" />
+            <TextBlock Grid.Row="4" Name="textblockCopyright" Text="Copyright" Foreground="#EEEEEE"/>
+        </Grid>
+    </Grid>
+</Window>

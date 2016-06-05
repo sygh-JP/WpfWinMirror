@@ -1,0 +1,85 @@
+﻿WPF ローカライズの手順：
+
+英語版をベース（ニュートラル言語）として、日本語にローカライズされた文字列テーブルを追加する手順を説明する。
+これは WPF でローカライズする方法のうち、最も簡単なもの。
+LocBaml を使う方法とは違って、MFC や Windows Forms に近い。
+他にも、ResourceDictionary を使ってローカライズ済みサテライト リソース アセンブリを明示的に作成する方法がある。
+それぞれの手法のメリット・デメリットの比較は下記。
+http://www.codeproject.com/Articles/37339/WPF-Localization
+
+
+[1]
+[アプリケーション] の [アセンブリ情報] で [ニュートラル言語] が [(なし)] になっていること、また
+"Resources.resx" という名前のリソース ファイルがすでにプロジェクト内に存在することを確認し、
+[新しい項目の追加] で [アセンブリ リソース ファイル] を選び、
+"Resources.ja-JP.resx" という名前でプロジェクトの Properties フォルダーにファイルを追加する。
+
+ちなみに [プロパティ] の [カスタム ツール] を [PublicResXFileCodeGenerator] にすると、
+空のファイル "Resources.ja-JP.Designer.cs" が自動生成されるようになるが、これは別に必要ないらしい。
+
+[2]
+ソリューション エクスプローラーで "Resources.resx" と "Resources.ja-JP.resx" をそれぞれダブルクリックして、
+同一の名前（例えば button1_Content）の英語および日本語リソース文字列をそれぞれに追加する。
+ベースとなる英語版のリソースは、アクセス修飾子を Internal ではなく Public にしておくこと。
+
+[3]
+後は個別に XAML マークアップ拡張を使って YourAppProjName.Properties.Resources クラスの静的プロパティを割り当てれば
+自動的に文言をローカライズしてくれる。
+<Window
+    x:Class="YourAppProjName.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:YourAppProjName"
+    xmlns:props="clr-namespace:YourAppProjName.Properties"
+	>
+    ...
+    <Button Name="button1" Content="{x:Static props:Resources.button1_Content}"/>
+    ...
+</Window>
+
+C# コード ビハインドで参照する場合は、
+global::YourAppProjName.Properties.Resources.button1_Content
+のようなラッパープロパティが自動的に生成されているのでそれを使えばよい。
+
+明示的にカルチャーを指定して、OS 設定によらず任意の言語に動的ローカライズする場合は
+別途コード ビハインドでの処理が必要となる。
+
+なお、下記のように App.xaml の Application.Resources に YourAppProjName.Properties.Resources クラスのインスタンスを追加して、
+バインディングを使ってローカライズする方法（Windows Phone アプリのサンプル含む）を見かけるが、これは NG。
+http://code.msdn.microsoft.com/WindowsPhone-howtolearning-83f50324
+http://uchukamen.wordpress.com/2012/04/15/%E7%94%BB%E9%9D%A2%E3%81%AE%E3%83%AD%E3%83%BC%E3%82%AB%E3%83%A9%E3%82%A4%E3%82%BA/
+http://d.hatena.ne.jp/bs-wp7/20110902/1314938780
+http://yohshiy.blog.fc2.com/blog-entry-232.html
+
+<Application
+    x:Class="YourAppProjName.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:YourAppProjName"
+    xmlns:props="clr-namespace:YourAppProjName.Properties"    
+    StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <!-- これは NG。 -->
+        <props:Resources x:Key="MyLocalizedResourceKey" />
+    </Application.Resources>
+</Application>
+
+<Button Name="button1" Content="{Binding Source={StaticResource MyLocalizedResourceKey}, Path=button1_Content}"/>
+
+App.xaml で YourAppProjName.Properties.Resources クラスをインスタンス化してしまうと、
+起動時にハンドルされない例外 System.Windows.Markup.XamlParseException が発生して
+アプリが起動できなくなることがある。
+どうも上記例の MyLocalizedResourceKey や button1_Content の名前を変更したり、
+EXE とは別の関連 DLL アセンブリの C# コードを変更してビルドしたりした直後に発生する模様。
+その後、なぜか EXE 側の C# コードになんらかの変更を加えて（タイム スタンプを更新して）ビルドし直さないと、ずっと例外が発生し続ける模様。
+XAML だけが変更されたとき、リソース ファイルがビルドし直されないせいかと思ったが、
+リビルドを実行しても改善しない。出力ファイル・中間ファイルやソリューション ユーザー オプション ファイル（.suo）を削除して
+クリーン状態からリビルドし直してもダメ。必ず EXE 側 C# コードの編集が要る。
+VS 2012 だけでなく、VS 2010 でも同様の現象が発生していたらしい。
+.NET 自体のバグという推測もある。
+（もしくは Visual Studio IDE 側のバグ？）
+そもそもアクセスしているのは静的プロパティなので、インスタンス化の必要はないはずなわけだが……
+
+http://d.hatena.ne.jp/kkamegawa/20101208/p1
+http://blog.brichan.jp/post/2010/08/20/Visual-Studio-2010e381a6e38184e3828de38184e3828de383bbe383bbe383bb.aspx
+http://yohshiy.blog.fc2.com/blog-entry-242.html

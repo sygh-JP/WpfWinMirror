@@ -1,0 +1,420 @@
+﻿<Window
+    x:Class="WpfWinMirror.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:WpfWinMirror"
+    xmlns:props="clr-namespace:WpfWinMirror.Properties"
+    Title="WPF WinMirror"
+    Name="mainWnd"
+    Width="525"
+    Height="350"
+    MinWidth="150"
+    MinHeight="{x:Static SystemParameters.CaptionHeight}"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="None"
+    AllowsTransparency="True"
+    Background="Transparent"
+    RenderOptions.ClearTypeHint="Enabled"
+    Topmost="True"
+    Loaded="Window_Loaded"
+    Closing="Window_Closing"
+    Closed="Window_Closed"
+    KeyDown="Window_KeyDown"
+    MouseLeftButtonDown="Window_MouseLeftButtonDown"
+    MouseLeftButtonUp="Window_MouseLeftButtonUp"
+    MouseMove="Window_MouseMove"
+    StateChanged="Window_StateChanged"
+    SourceInitialized="Window_SourceInitialized"
+    Icon="Resources/WpfWinMirror.ico"
+    >
+    <!-- 透明・半透明の背景にテキストを描画するとき、ClearType は無効になりグレースケール アンチエイリアスになってしまうので注意。 -->
+    <Window.Resources>
+        <!-- メニューのチェック表示に RadioButton コントロールを使うとコレじゃナイ感が漂うので NG。 -->
+        <Style x:Key="MenuItemIconRadioEllipseStyle" TargetType="Ellipse">
+            <Setter Property="Width" Value="8"/>
+            <Setter Property="Height" Value="8"/>
+            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Fill" Value="Black"/>
+            <Setter Property="IsHitTestVisible" Value="False"/>
+        </Style>
+        <Style x:Key="MenuItemIconBorderStyle" TargetType="Border">
+            <Setter Property="Margin" Value="2"/>
+            <Setter Property="BorderThickness" Value="1"/>
+        </Style>
+    </Window.Resources>
+
+    <Window.CommandBindings>
+        <CommandBinding Command="ApplicationCommands.Close" Executed="AppCloseCommand_Executed" />
+
+        <CommandBinding
+            Command="{x:Static local:MainWindow.TransparentModeCommand}"
+            Executed="TransparentModeCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.EffectNoneCommand}"
+            Executed="EffectNoneCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.EffectGrayscaleCommand}"
+            Executed="EffectGrayscaleCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.EffectNPInvertCommand}"
+            Executed="EffectNPInvertCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.EffectDarknessToOpacityCommand}"
+            Executed="EffectDarknessToOpacityCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.EffectBrightnessToOpacityCommand}"
+            Executed="EffectBrightnessToOpacityCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.HorizontalReverseCommand}"
+            Executed="HorizontalReverseCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.VerticalReverseCommand}"
+            Executed="VerticalReverseCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        <CommandBinding
+            Command="{x:Static local:MainWindow.OpenSettingsIncludeDirCommand}"
+            Executed="OpenSettingsIncludeDirCommand_Executed"
+            CanExecute="OpenSettingsIncludeDirCommand_CanExecute"
+            />
+        <!-- 既定の ApplicationCommands.Close をコマンド バインディングする方法でもよい。 -->
+        <!--
+        <CommandBinding
+            Command="{x:Static local:MainWindow.AppCloseCommand}"
+            Executed="AppCloseCommand_Executed"
+            CanExecute="AlwaysAvailableCommand_CanExecute"
+            />
+        -->
+    </Window.CommandBindings>
+
+    <!-- 非アクティブな状態で別のアプリケーションの修飾付きショートカット キーを入力して致命的なことにならないようにするために、
+    あえて1ストローク キーをショートカットにする。-->
+    <Window.InputBindings>
+        <KeyBinding Key="T" Command="{x:Static local:MainWindow.TransparentModeCommand}" />
+        <KeyBinding Key="N" Command="{x:Static local:MainWindow.EffectNoneCommand}" />
+        <KeyBinding Key="G" Command="{x:Static local:MainWindow.EffectGrayscaleCommand}" />
+        <KeyBinding Key="I" Command="{x:Static local:MainWindow.EffectNPInvertCommand}" />
+        <KeyBinding Key="D" Command="{x:Static local:MainWindow.EffectDarknessToOpacityCommand}" />
+        <KeyBinding Key="B" Command="{x:Static local:MainWindow.EffectBrightnessToOpacityCommand}" />
+        <KeyBinding Key="H" Command="{x:Static local:MainWindow.HorizontalReverseCommand}" />
+        <KeyBinding Key="V" Command="{x:Static local:MainWindow.VerticalReverseCommand}" />
+    </Window.InputBindings>
+
+    <Window.ContextMenu>
+        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、少しだけ Mac っぽくなる。 -->
+        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" FontFamily="Segoe UI SemiBold" FontSize="14">
+            <!-- MenuItem の IsCheckable="True" にすると、自動的に IsChecked プロパティがトグル動作するようになる。 -->
+            <MenuItem Name="menuItemTargetWindowRoot" Header="{x:Static props:Resources.menuItemTargetWindowRoot_Header}">
+            </MenuItem>
+            <Separator/>
+            <!-- エフェクト。 -->
+            <MenuItem Name="menuItemEffectRoot" Header="{x:Static props:Resources.menuItemEffectRoot_Header}">
+                <!-- エフェクトなし。 -->
+                <MenuItem Name="menuItemEffectNone" Header="{x:Static props:Resources.menuItemEffectNone_Header}"
+                          InputGestureText="N"
+                          Command="{x:Static local:MainWindow.EffectNoneCommand}">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <!-- グレースケール。 -->
+                <MenuItem Name="menuItemEffectGrayscale" Header="{x:Static props:Resources.menuItemEffectGrayscale_Header}"
+                          InputGestureText="G"
+                          Command="{x:Static local:MainWindow.EffectGrayscaleCommand}">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <!-- ネガポジ反転。 -->
+                <MenuItem Name="menuItemEffectNPInvert" Header="{x:Static props:Resources.menuItemEffectNPInvert_Header}"
+                          InputGestureText="I"
+                          Command="{x:Static local:MainWindow.EffectNPInvertCommand}">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <!-- 暗さを不透明度に。 -->
+                <MenuItem Name="menuItemEffectDarknessToOpacity" Header="{x:Static props:Resources.menuItemEffectDarknessToOpacity_Header}"
+                          InputGestureText="D"
+                          Command="{x:Static local:MainWindow.EffectDarknessToOpacityCommand}">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <!-- 明るさを不透明度に。 -->
+                <MenuItem Name="menuItemEffectBrightnessToOpacity" Header="{x:Static props:Resources.menuItemEffectBrightnessToOpacity_Header}"
+                          InputGestureText="B"
+                          Command="{x:Static local:MainWindow.EffectBrightnessToOpacityCommand}">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <Separator/>
+            <!-- フレームレート。 -->
+            <MenuItem Name="menuItemFrameRateRoot" Header="{x:Static props:Resources.menuItemFrameRateRoot_Header}">
+                <MenuItem Name="menuItemFrameRateStop" Header="{x:Static props:Resources.menuItemFrameRateStop_Header}"
+                          Click="menuItemFrameRateStop_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Name="menuItemFrameRate10fps" Header="_10 FPS"
+                          Click="menuItemFrameRate10fps_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Name="menuItemFrameRate20fps" Header="_20 FPS"
+                          Click="menuItemFrameRate20fps_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemTransparentMode" Header="{x:Static props:Resources.menuItemTransparentMode_Header}"
+                      InputGestureText="T"
+                      IsChecked="{Binding Path=PlacementTarget.DataContext.IsTransparentMode, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
+                      Command="{x:Static local:MainWindow.TransparentModeCommand}"/>
+            <!--
+            MenuItem に MenuItem 以外のコントロールを直接埋め込んだ場合でも、サブメニューが自動的にできるらしい。
+            ただし、その場合コンテキスト メニュー全体の幅がおかしくなる現象が発生する（サブメニューのある項目にマウスオーバーすると正常に戻る）。
+            なお、ContextMenu とそのホスト コントロール（PlacementTarget）間のバインディングは直接動作しない。
+            探索指定に若干の工夫が必要となる。
+            http://code.msdn.microsoft.com/windowsdesktop/ContextMenuBinding-e408506b
+            -->
+            <Separator/>
+            <MenuItem Name="menuItemOpacityRoot" Header="{x:Static props:Resources.menuItemOpacityRoot_Header}">
+                <DockPanel Visibility="Visible">
+                    <Slider Name="sliderImageOpacity" Minimum="0.1" Maximum="1.0" LargeChange="0.2" SmallChange="0.1"
+                        Value="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
+                        Width="100" Margin="4,0" VerticalAlignment="Center"/>
+                    <TextBox Name="textboxImageOpacity" Width="50"
+                     TextAlignment="Right"
+                     VerticalAlignment="Center" VerticalContentAlignment="Center"
+                     Text="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}"
+                     KeyDown="UpdateTextBoxBindingSourceOnEnterKeyDown"/>
+                </DockPanel>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemHorizontalReverse" Header="{x:Static props:Resources.menuItemHorizontalReverse_Header}"
+                      InputGestureText="H"
+                      Command="{x:Static local:MainWindow.HorizontalReverseCommand}">
+                <MenuItem.Icon>
+                    <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                        <Image Source="./Resources/HorizontalSwap_16p.png" Width="16" Height="16"/>
+                    </Border>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Name="menuItemVerticalReverse" Header="{x:Static props:Resources.menuItemVerticalReverse_Header}"
+                      InputGestureText="V"
+                      Command="{x:Static local:MainWindow.VerticalReverseCommand}">
+                <MenuItem.Icon>
+                    <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                        <Image Source="./Resources/VerticalSwap_16p.png" Width="16" Height="16"/>
+                    </Border>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemSaveImageAs" Header="{x:Static props:Resources.menuItemSaveImageAs_Header}"
+                      Click="menuItemSaveImageAs_Click">
+                <MenuItem.Icon>
+                    <Image Source="./Resources/compactflash_16p.png" Width="16" Height="16"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemSavePresetRoot" Header="{x:Static props:Resources.menuItemSavePresetRoot_Header}"/>
+            <MenuItem Name="menuItemLoadPresetRoot" Header="{x:Static props:Resources.menuItemLoadPresetRoot_Header}"/>
+            <MenuItem Name="menuItemOpenSettingsIncludeDir" Header="{x:Static props:Resources.menuItemOpenSettingsIncludeDir_Header}"
+                      Command="{x:Static local:MainWindow.OpenSettingsIncludeDirCommand}">
+                <MenuItem.Icon>
+                    <Image Source="./Resources/FolderOpen_16p.png" Width="16" Height="16"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemFitWindowToImage" Header="{x:Static props:Resources.menuItemFitWindowToImage_Header}"
+                      Click="menuItemFitWindowToImage_Click"/>
+            <MenuItem Name="menuItemReset" Header="{x:Static props:Resources.menuItemReset_Header}"
+                      Click="menuItemReset_Click"/>
+            <Separator/>
+            <MenuItem Name="menuItemAboutThisApp" Header="{x:Static props:Resources.menuItemAboutThisApp_Header}"
+                      Click="menuItemAboutThisApp_Click">
+                <MenuItem.Icon>
+                    <Image Source="./Resources/Annotations_Info_16p.png" Width="16" Height="16"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <MenuItem Name="menuItemAppClose" Header="{x:Static props:Resources.menuItemAppClose_Header}"
+                      InputGestureText="Alt+F4" Command="ApplicationCommands.Close"/>
+        </ContextMenu>
+    </Window.ContextMenu>
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="{x:Static SystemParameters.CaptionHeight}"
+                      ResizeBorderThickness="{x:Static SystemParameters.WindowResizeBorderThickness}"
+                      GlassFrameThickness="0,0,0,1" />
+    </WindowChrome.WindowChrome>
+
+    <!-- NOTE: Brush の色を ColorAnimation で制御する場合は、
+    XAML 要素構文で名前付きの SolidColorBrush を作成して、
+    それをターゲットとしてバインドしてやる必要がある。
+    -->
+    <!-- NOTE: アプリがアクティブでないと MouseEnter/MouseLeave イベントは発生しない。
+    また、タイトル バー領域に関しては、MouseEnter イベントは発生しない（例えイベント トリガーのソースを Window にしていても）。
+    アクティブでないときにも入力を受け取る場合、
+    グローバル メッセージ フック（非推奨）もしくは RawInput（WM_INPUT、XP 以降で利用可能）と RIDEV_INPUTSINK を使う必要がある。
+    -->
+    <!--
+    <Window.Triggers>
+        <EventTrigger RoutedEvent="Window.Loaded" SourceName="mainWnd">
+            <BeginStoryboard Name="blinkBegin">
+                <Storyboard>
+                    <DoubleAnimation
+                        Storyboard.TargetName="glowBorder"
+                        Storyboard.TargetProperty="Opacity"
+                        From="1" To="0" Duration="0:0:1"
+                        RepeatBehavior="Forever" AutoReverse="true" />
+                </Storyboard>
+            </BeginStoryboard>
+        </EventTrigger>
+
+        <EventTrigger RoutedEvent="Window.Loaded">
+            <PauseStoryboard BeginStoryboardName="blinkBegin"/>
+        </EventTrigger>
+
+        <EventTrigger RoutedEvent="Mouse.MouseLeave">
+            <PauseStoryboard BeginStoryboardName="blinkBegin"/>
+        </EventTrigger>
+
+        <EventTrigger RoutedEvent="Mouse.MouseEnter">
+            <ResumeStoryboard BeginStoryboardName="blinkBegin"/>
+        </EventTrigger>
+    </Window.Triggers>
+    -->
+
+    <Grid Name="mainRootGrid" Background="#80202020">
+
+        <!-- Viewbox が Stretch="Uniform" だと、たとえ等倍表示できる状況であってもラスター画像はボケてしまう。 -->
+        <!-- 拡大・縮小表示する場合は、クリッピング矩形を作成する際にどのみちスケーリング換算が必要となるので、直接 RenderTransform などを制御したほうがいいかも。 -->
+        <!--
+        ミラーリングされた内容が枠なしウィンドウで最前面に表示されていると一瞬混乱するので、
+        デフォルトではあえて不透明度を下げて区別がつくようにしておくほうがよいか？
+        通常のタイトル バーを持つアプリであれば、 コピー画像はタイトル バーもメニューバーもなくなるので区別が付きやすいが、
+        非クライアント領域の描画も完全制御している Google Chrome や Visual Studio 2012 のようなアプリをターゲットにしていると混乱しやすい。
+        -->
+        <Canvas Name="canvasMainImage" UseLayoutRounding="True" IsHitTestVisible="False"
+                Width="{Binding ElementName=mainImage, Path=Width}"
+                Height="{Binding ElementName=mainImage, Path=Height}">
+            <Image Name="mainImage" UseLayoutRounding="True" IsHitTestVisible="False" Opacity="{Binding Path=ImageOpacity}"/>
+        </Canvas>
+
+        <Border Name="outerBorder" BorderThickness="1" BorderBrush="DodgerBlue"/>
+        <Border Name="glowBorder" BorderThickness="3" BorderBrush="DodgerBlue" Opacity="1">
+            <Border.Effect>
+                <BlurEffect Radius="8" />
+            </Border.Effect>
+        </Border>
+        <!--
+        Border を使うと、最大化したときに一瞬だけ色付きの巨大な矩形が表示されてちらつく。
+        また、Window 自体をマウスでリサイズしようとすると（コンテンツ サイズは Window に追従）、境界線の右端と下端の残像が見えてしまう。
+        Line を 4 つ使ってばらばらに描画しても同じ。
+        おそらく Line は 2 枚、Border は 4x2 枚の3角形ポリゴンで実装されていて、
+        外側の拡大に内側が追従しきれていないフレームがあって残像が見えている。
+        たぶん Window 自体が GDI で実装されているせい（垂直同期を待たない）。
+        -->
+
+        <!--
+        <Line X1="0" Y1="0"
+              X2="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y2="0"
+              Stroke="DodgerBlue" StrokeThickness="1"/>
+        <Line X1="0" Y1="0"
+              X2="0" Y2="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+              Stroke="DodgerBlue" StrokeThickness="1"/>
+        <Line X1="0" Y1="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+              X2="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y2="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+              Stroke="DodgerBlue" StrokeThickness="1"/>
+        <Line X1="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y1="0"
+              X2="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y2="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+              Stroke="DodgerBlue" StrokeThickness="1"/>
+        -->
+
+        <TextBlock Name="textblockNoImage" Text="&lt;No Image&gt;" IsHitTestVisible="False" Padding="8,4,8,8"
+                   HorizontalAlignment="Center" VerticalAlignment="Center"
+                   FontFamily="Segoe UI SemiBold" FontSize="24"
+                   Foreground="Gainsboro" Background="DimGray"/>
+        <!-- タイトル バーの代わりの半透明矩形。 -->
+        <!-- アプリがアクティブな状態で完全不透明の矩形がタイトル バー領域に存在すると、クリッピング矩形の作成時に不便なので、
+        あえてアプリ名やシステム コマンド パネルとは分ける。なお、半透明矩形にテキストを描画するときは ClearType が効かなくなる。 -->
+        <Rectangle Height="{x:Static SystemParameters.CaptionHeight}" IsHitTestVisible="False" VerticalAlignment="Top" Fill="DimGray" Opacity="0.5"/>
+        <Canvas>
+            <Rectangle Name="rectSelectRegion" Stroke="DodgerBlue" Fill="#801E90FF" StrokeThickness="1" Width="0" Height="0" />
+        </Canvas>
+
+        <Border
+            Name="borderAppName"
+            Visibility="{Binding ElementName=glowBorder, Path=Visibility}"
+            Height="{x:Static SystemParameters.CaptionHeight}"
+            IsHitTestVisible="False"
+            HorizontalAlignment="Left"
+            VerticalAlignment="Top"
+            Margin="1,0,0,0"
+            Padding="0,1,0,0"
+            >
+            <TextBlock Name="textblockAppTitle" Text="WPF WinMirror" IsHitTestVisible="False" Padding="8,0" HorizontalAlignment="Left"
+                       FontFamily="Segoe UI" FontSize="13"
+                       Foreground="Gainsboro" Background="DimGray" />
+        </Border>
+
+        <Border
+            Name="borderSystemCommands"
+            Visibility="{Binding ElementName=glowBorder, Path=Visibility}"
+            Height="{x:Static SystemParameters.CaptionHeight}"
+            HorizontalAlignment="Right"
+            VerticalAlignment="Top"
+            Margin="0,0,1,0"
+            Padding="0,1,0,0"
+            >
+            <StackPanel Orientation="Horizontal" Background="DimGray"
+                    KeyboardNavigation.TabNavigation="None">
+                <Button Content="0" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonMinimize"
+                    ToolTip="{x:Static props:Resources.buttonMinimize_ToolTip}" Click="buttonMinimize_Click"/>
+                <Button Content="1" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonMaximize"
+                    ToolTip="{x:Static props:Resources.buttonMaximize_ToolTip}" Click="buttonMaximize_Click" Visibility="Visible"/>
+                <Button Content="2" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonRestore"
+                    ToolTip="{x:Static props:Resources.buttonRestore_ToolTip}" Click="buttonRestore_Click" Visibility="Collapsed"/>
+                <Button Content="r" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonClose"
+                    ToolTip="{x:Static props:Resources.buttonClose_ToolTip}" Command="ApplicationCommands.Close"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -2,8 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Threading;
+
+// System.Windows 配下のクラスはすべて WPF 関連のものであることに注意。WinForms や WinRT とは別物で、類似性はあるが互換性はない。
+// System.Windows.Threading 名前空間は WindowsBase アセンブリに属する。
+// System.Windows.Interop 名前空間は PresentationCore アセンブリに属する。
+
 
 namespace MyMiscHelpers
 {
@@ -20,7 +25,7 @@ namespace MyMiscHelpers
 		}
 
 		/// <summary>
-		/// Windows OS の標準 DPI は 96。Mac だと 72 になる。
+		/// Windows OS の標準 DPI は 96。旧 Mac だと 72 になる。Retina ディスプレイは世代や製品によって複数ある。
 		/// ちなみに Win32 API のヘッダーにはこのデフォルト数値に対するシンボルは特に定義されていない模様。
 		/// Direct2D のヘルパーにも 96.0f という即値が直接埋め込まれている。
 		/// </summary>
@@ -34,6 +39,15 @@ namespace MyMiscHelpers
 				return (handle.IsInvalid ? DefaultDpi : Gdi32DllMethodsInvoker.GetDeviceCaps(handle, capIndex));
 			}
 		}
+	}
+
+	// intsafe.h もしくは minwindef.h から移植。
+	public static class MyBitHelper
+	{
+		public static uint LoWord(IntPtr ptr) { return ((uint)ptr) & 0xffff; }
+		public static uint HiWord(IntPtr ptr) { return (((uint)ptr) >> 16) & 0xffff; }
+		public static uint LoWord(UIntPtr ptr) { return ((uint)ptr) & 0xffff; }
+		public static uint HiWord(UIntPtr ptr) { return (((uint)ptr) >> 16) & 0xffff; }
 	}
 
 	public static class MyThreadHelper
@@ -164,15 +178,58 @@ namespace MyMiscHelpers
 
 
 	/// <summary>
-	/// Win32 API の P/Invoke や GDI/GDI+ 連携の WIC ヘルパーなどをラップするクラス。
+	/// Win32 との相互運用を提供する静的ヘルパークラス。
+	/// Win32 API の P/Invoke や GDI/GDI+ 連携の WIC ヘルパーなどをラップする。
 	/// </summary>
 	public static class MyWin32InteropHelper
 	{
+		public static uint GetNativeWindowThreadProcessId(IntPtr hWnd, out uint processId)
+		{
+			return User32DllMethodsInvoker.GetWindowThreadProcessId(hWnd, out processId);
+		}
+
+		public static uint GetNativeWindowThreadId(IntPtr hWnd)
+		{
+			return User32DllMethodsInvoker.GetWindowThreadProcessId(hWnd, IntPtr.Zero);
+		}
+
+		public static bool IsWindow(IntPtr hwnd)
+		{
+			return User32DllMethodsInvoker.IsWindow(hwnd);
+		}
 
 		public static bool HasWindowStyleMaximize(IntPtr hwnd)
 		{
 			return (User32DllMethodsInvoker.GetWindowStyle(hwnd) & User32DllMethodsInvoker.WindowStyles.WS_MAXIMIZE) != 0;
 		}
+
+		public static bool HasWindowStyleMinimize(IntPtr hwnd)
+		{
+			return (User32DllMethodsInvoker.GetWindowStyle(hwnd) & User32DllMethodsInvoker.WindowStyles.WS_MINIMIZE) != 0;
+		}
+
+		public static bool HasWindowStyleMaximizeBox(IntPtr hwnd)
+		{
+			return (User32DllMethodsInvoker.GetWindowStyle(hwnd) & User32DllMethodsInvoker.WindowStyles.WS_MAXIMIZEBOX) != 0;
+		}
+
+		public static bool HasWindowStyleMinimizeBox(IntPtr hwnd)
+		{
+			return (User32DllMethodsInvoker.GetWindowStyle(hwnd) & User32DllMethodsInvoker.WindowStyles.WS_MINIMIZEBOX) != 0;
+		}
+
+		public static bool HasWindowStyleSysMenu(IntPtr hwnd)
+		{
+			return (User32DllMethodsInvoker.GetWindowStyle(hwnd) & User32DllMethodsInvoker.WindowStyles.WS_SYSMENU) != 0;
+		}
+
+		public static bool HasWindowStyleVisible(IntPtr hwnd)
+		{
+			return (User32DllMethodsInvoker.GetWindowStyle(hwnd) & User32DllMethodsInvoker.WindowStyles.WS_VISIBLE) != 0;
+		}
+
+		// HACK: int ではなく ExWindowStyles 型を使ってフラグ演算する。
+		// また、GetWindowLong()/SetWindowLong() より高レベルな GetWindowStyleEx()/SetWindowStyleEx() を用意しているので、そちらを利用する。
 
 		public static bool HasWindowStyleExTransparent(IntPtr hwnd)
 		{
@@ -206,7 +263,7 @@ namespace MyMiscHelpers
 			}
 		}
 
-		public static void SetWindowStyleExCompsited(IntPtr hwnd, bool isComposited = true)
+		public static void SetWindowStyleExComposited(IntPtr hwnd, bool isComposited = true)
 		{
 			int extendedStyle = User32DllMethodsInvoker.GetWindowLong(hwnd, (int)User32DllMethodsInvoker.IndexOfGetWindowLong.GWL_EXSTYLE);
 			if (isComposited)
@@ -254,6 +311,27 @@ namespace MyMiscHelpers
 				winStyle & (~User32DllMethodsInvoker.WindowStyles.WS_THICKFRAME));
 		}
 
+		public static void DisableWindowSystemMenu(IntPtr hwnd)
+		{
+			var winStyle = User32DllMethodsInvoker.GetWindowStyle(hwnd);
+			User32DllMethodsInvoker.SetWindowStyle(hwnd,
+				winStyle & (~User32DllMethodsInvoker.WindowStyles.WS_SYSMENU));
+		}
+
+		public static void AppendWindowStyleCaption(IntPtr hwnd)
+		{
+			var winStyle = User32DllMethodsInvoker.GetWindowStyle(hwnd);
+			User32DllMethodsInvoker.SetWindowStyle(hwnd,
+				winStyle | User32DllMethodsInvoker.WindowStyles.WS_CAPTION);
+		}
+
+		static internal void AppendWindowStyleExTransparent(IntPtr hwnd)
+		{
+			var extendedStyle = User32DllMethodsInvoker.GetWindowStyleEx(hwnd);
+			User32DllMethodsInvoker.SetWindowStyleEx(hwnd,
+				extendedStyle | User32DllMethodsInvoker.ExWindowStyles.WS_EX_TRANSPARENT);
+		}
+
 		public static void RemoveSystemMenuLast2Items(IntPtr hwnd)
 		{
 			IntPtr hMenu = User32DllMethodsInvoker.GetSystemMenu(hwnd, false);
@@ -272,10 +350,103 @@ namespace MyMiscHelpers
 			}
 		}
 
+		public static string GetSystemMenuItemLabelStringClose(IntPtr hwnd)
+		{
+			IntPtr hMenu = User32DllMethodsInvoker.GetSystemMenu(hwnd, false);
+			if (hMenu != IntPtr.Zero)
+			{
+				uint cmdId = (uint)Win32Commons.SystemCommandType.SC_CLOSE;
+				// P/Invoke する際、メソッドの引数に StringBuilder を使うことはできるが、構造体のメンバーに StringBuilder を使うことはできない。
+				// http://msdn.microsoft.com/ja-jp/library/e765dyyy%28v=vs.100%29.aspx
+				var itemInfo = new User32DllMethodsInvoker.MENUITEMINFO();
+				itemInfo.cbSize = (uint)System.Runtime.InteropServices.Marshal.SizeOf(itemInfo);
+				itemInfo.fMask = User32DllMethodsInvoker.MenuItemInfoMaskType.MIIM_STRING;
+				if (User32DllMethodsInvoker.GetMenuItemInfo(hMenu, cmdId, false, ref itemInfo))
+				{
+					// ウィンドウ右上のコマンド ボタンのツールヒント テキストとは違い、
+					// "閉じる(&C)	Alt+F" のようにすべてのテキスト、つまりアクセス キーとショートカット キーの説明も含まれる。
+					itemInfo.dwTypeData = new String('0', (int)(itemInfo.cch + 1));
+					if (User32DllMethodsInvoker.GetMenuItemInfo(hMenu, cmdId, false, ref itemInfo))
+					{
+						return itemInfo.dwTypeData;
+					}
+				}
+			}
+			return null;
+		}
+
+
+		internal static bool PostLegacyWin32DialogBoxCommand(IntPtr hwnd, Win32Commons.DialogBoxCommandIds id)
+		{
+			return User32DllMethodsInvoker.PostMessage(hwnd, Win32Commons.Win32Message.WM_COMMAND, new IntPtr((int)id), IntPtr.Zero);
+		}
+
+		public static bool PostLegacyWin32DialogBoxCommandOK(IntPtr hwnd)
+		{
+			return PostLegacyWin32DialogBoxCommand(hwnd, Win32Commons.DialogBoxCommandIds.IDOK);
+		}
+
+		public static bool PostLegacyWin32DialogBoxCommandCancel(IntPtr hwnd)
+		{
+			return PostLegacyWin32DialogBoxCommand(hwnd, Win32Commons.DialogBoxCommandIds.IDCANCEL);
+		}
+
+		public static bool PostLegacyWin32DialogBoxCommandYes(IntPtr hwnd)
+		{
+			return PostLegacyWin32DialogBoxCommand(hwnd, Win32Commons.DialogBoxCommandIds.IDYES);
+		}
+
+		public static bool PostLegacyWin32DialogBoxCommandNo(IntPtr hwnd)
+		{
+			return PostLegacyWin32DialogBoxCommand(hwnd, Win32Commons.DialogBoxCommandIds.IDNO);
+		}
+
+
+		internal static bool HasLegacyWin32DialogBoxControl(IntPtr hwnd, Win32Commons.DialogBoxCommandIds id)
+		{
+			return User32DllMethodsInvoker.GetDlgItem(hwnd, (int)id) != IntPtr.Zero;
+		}
+
+		public static bool HasLegacyWin32DialogBoxControlOK(IntPtr hwnd)
+		{
+			return HasLegacyWin32DialogBoxControl(hwnd, Win32Commons.DialogBoxCommandIds.IDOK);
+		}
+
+		public static bool HasLegacyWin32DialogBoxControlCancel(IntPtr hwnd)
+		{
+			return HasLegacyWin32DialogBoxControl(hwnd, Win32Commons.DialogBoxCommandIds.IDCANCEL);
+		}
+
+		public static bool HasLegacyWin32DialogBoxControlYes(IntPtr hwnd)
+		{
+			return HasLegacyWin32DialogBoxControl(hwnd, Win32Commons.DialogBoxCommandIds.IDYES);
+		}
+
+		public static bool HasLegacyWin32DialogBoxControlNo(IntPtr hwnd)
+		{
+			return HasLegacyWin32DialogBoxControl(hwnd, Win32Commons.DialogBoxCommandIds.IDNO);
+		}
+
+		// Windows Forms の DialogResult には Abort, Retry, Ignore に対応する値が存在するが、
+		// WPF の MessageBoxResult にはない。
+		// なお、[OK] だけのときは、見た目は [OK] だが 内部コントロール／コマンド ID は IDCANCEL らしい。
+		// Esc キーで閉じることができるのがその証拠。
+
+		public static string GetLegacyWin32MessageBoxMainText(IntPtr hwnd)
+		{
+			var hStatic = User32DllMethodsInvoker.GetDlgItem(hwnd, (int)Win32Commons.DialogBoxCommandIds.MainStaticTextLabel);
+			if (hStatic != IntPtr.Zero)
+			{
+				return GetWindowText(hStatic);
+			}
+			return null;
+		}
+
+
 		#region Win32/Win64 Compatible
 		public static IntPtr GetWindowLongPtr(IntPtr hWnd, Int32 index)
 		{
-			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(int))
+			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
 			{
 				// Win32
 				return new IntPtr(User32DllMethodsInvoker.GetWindowLong(hWnd, index));
@@ -289,7 +460,7 @@ namespace MyMiscHelpers
 
 		public static IntPtr SetWindowLongPtr(IntPtr hWnd, Int32 index, IntPtr newStyle)
 		{
-			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(int))
+			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
 			{
 				// Win32
 				return new IntPtr(User32DllMethodsInvoker.SetWindowLong(hWnd, index, newStyle.ToInt32()));
@@ -299,6 +470,44 @@ namespace MyMiscHelpers
 				// Win64
 				return User32DllMethodsInvoker.SetWindowLongPtr(hWnd, index, newStyle);
 			}
+		}
+
+		public static IntPtr GetClassLongPtr(IntPtr hWnd, Int32 index)
+		{
+			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
+			{
+				// Win32
+				return new IntPtr((int)User32DllMethodsInvoker.GetClassLong(hWnd, index));
+			}
+			else
+			{
+				// Win64
+				return new IntPtr((long)User32DllMethodsInvoker.GetClassLongPtr(hWnd, index).ToUInt64());
+			}
+		}
+
+		public static IntPtr SetClassLongPtr(IntPtr hWnd, Int32 index, IntPtr newLong)
+		{
+			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
+			{
+				// Win32
+				return new IntPtr((int)User32DllMethodsInvoker.SetClassLong(hWnd, index, newLong.ToInt32()));
+			}
+			else
+			{
+				// Win64
+				return new IntPtr((long)User32DllMethodsInvoker.SetClassLongPtr(hWnd, index, newLong).ToUInt64());
+			}
+		}
+
+		public static IntPtr GetModuleHandleFromWindow(IntPtr hWnd)
+		{
+			return GetClassLongPtr(hWnd, (int)User32DllMethodsInvoker.IndexOfGetClassLong.GCL_HMODULE);
+		}
+
+		public static IntPtr GetInstanceHandleFromWindow(IntPtr hWnd)
+		{
+			return GetWindowLongPtr(hWnd, (int)User32DllMethodsInvoker.IndexOfGetWindowLong.GWL_HINSTANCE);
 		}
 		#endregion
 
@@ -332,7 +541,7 @@ namespace MyMiscHelpers
 			// System.Windows.Rect.Intersect() および
 			// Windows.Foundation.Rect.Intersect() 同様の実装になっているはず。
 			// 面倒なので拡張メソッド実装にはしない。
-			// GDI+、WPF、Win ストア アプリで共通して使えるデータ型（＋豊富なユーティリティ メソッド）が標準定義されていると楽なのだが……
+			// GDI+、WPF、WinRT ストア アプリで共通して使えるデータ型（＋豊富なユーティリティ メソッド）が標準定義されていると楽なのだが……
 			int left = Math.Max(r1.X, r2.X);
 			int top = Math.Max(r1.Y, r2.Y);
 			int right = Math.Min(r1.X + r1.Width, r2.X + r2.Width);
@@ -395,143 +604,29 @@ namespace MyMiscHelpers
 			return intersectRect;
 		}
 
-		#region GDI+ に直接関連するヘルパー。アセンブリ外部に公開しない。
-
-		/// <summary>
-		/// Win32 ウィンドウのイメージを 32bit GDI+ ビットマップ（DIB）として取得する。
-		/// なお、ウィンドウが最小化されていると、タイトル バーの領域しか取得できないので注意。
-		/// 別プロセスのウィンドウであってもキャプチャ可能。
-		/// </summary>
-		/// <returns>取得できたイメージ。</returns>
-		internal static System.Drawing.Bitmap CaptureWindow(IntPtr hwnd, int width, int height)
+		public static IntPtr GetOwnerWindow(IntPtr hwnd)
 		{
-			// 実際はデフォルトで System.Drawing.Imaging.PixelFormat.Format32bppArgb になる。
-			var img = new System.Drawing.Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-			CaptureWindow(hwnd, img, System.Windows.Int32Rect.Empty);
-			return img;
+			return User32DllMethodsInvoker.GetWindow(hwnd, User32DllMethodsInvoker.CommandOfGetWindow.GW_OWNER);
 		}
 
-		internal static void CaptureWindow(IntPtr hwnd, System.Drawing.Bitmap img, System.Windows.Int32Rect clippingRect)
+		public static IntPtr GetNextWindow(IntPtr hwnd)
 		{
-			System.Diagnostics.Debug.Assert(img != null);
-			using (var memg = System.Drawing.Graphics.FromImage(img))
-			{
-				memg.Clear(System.Drawing.Color.Transparent);
-				IntPtr memDC = memg.GetHdc();
-#if false
-				// PrintWindow() は Windows XP で追加された API だが、
-				// これはどうも各ウィンドウに再描画要求メッセージを送るらしく、
-				// 短い時間間隔で呼び出すと Windows Calculator（電卓、calc.exe）などはちらつく。
-				// Aero Glass が無効になった状態のウィンドウのスクリーンショットを撮れるので、
-				// ヘルプ作成などの非リアルタイム用途であれば適している API かも。
-				// たぶん Aero Auto Color も同様。
-				// 最小化した状態ではタイトル バーのみがレンダリングされる。
-				// http://d.hatena.ne.jp/madotate/
-				User32DllMethodsInvoker.PrintWindow(hwnd, memDC, 0);
-#else
-				// BitBlt() を使ってウィンドウのデバイス コンテキスト経由で描画内容を DIB ビットマップに転送する。
-				// 最小化した状態では PrintWindow() 同様、タイトル バーのみがレンダリングされる。
-				// こちらは DWM API 同様、それなりに高速なのでリアルタイム用途に適している。
-				// ただし Aero Glass の Window Chrome 領域（タイトル バー含む）がゴミデータになるときがある模様？
-				// そのため、クライアント領域のみ（ただしメニューバーは含まれない）をキャプチャする。
-				// DirectShow などのビデオ オーバーレイを使っているアプリでどうなるのかは試してみないと分からない。
-				// キャプチャ自体は常にクライアント左上を基点、デスクトップ サイズを限界として、
-				// 利用側で配置する際にそれらの情報を考慮するようにする。
-				IntPtr winDC = User32DllMethodsInvoker.GetWindowDC(hwnd);
-#if true
-				var intersectRect = CalcClientIntersectRect(hwnd, clippingRect);
-#if false
-				// 切り出し元の相対位置を使う場合。
-				int dstX = intersectRect.X;
-				int dstY = intersectRect.Y;
-#else
-				// 切り出した領域を常に左上に配置する場合。
-				const int dstX = 0;
-				const int dstY = 0;
-#endif
-				// ウィンドウ クライアント領域の内容をさらにユーザー定義クリッピング矩形で切り出したものを、ビットマップに転送する。
-				Gdi32DllMethodsInvoker.BitBlt(
-					memDC, dstX, dstY, intersectRect.Width, intersectRect.Height,
-					winDC, intersectRect.X, intersectRect.Y,
-					Gdi32DllMethodsInvoker.TernaryRasterOperationType.SRCCOPY);
-#else
-				var winRect = GetWindowRect(hwnd);
-				Gdi32DllMethodsInvoker.BitBlt(
-					memDC, 0, 0, winRect.Width, winRect.Height,
-					winDC, 0, 0,
-				Gdi32DllMethodsInvoker.TernaryRasterOperationType.SRCCOPY);
-#endif
-#endif
-				User32DllMethodsInvoker.ReleaseDC(hwnd, winDC);
-				memg.ReleaseHdc(memDC);
-			}
+			return User32DllMethodsInvoker.GetWindow(hwnd, User32DllMethodsInvoker.CommandOfGetWindow.GW_HWNDNEXT);
 		}
 
-
-		internal static bool CopyGdipBitmapToWicBitmap(System.Drawing.Bitmap gdipBitmap, System.Windows.Media.Imaging.WriteableBitmap wicBitmap)
+		public static IntPtr GetPrevWindow(IntPtr hwnd)
 		{
-			System.Diagnostics.Debug.Assert(gdipBitmap != null && wicBitmap != null);
-			if (wicBitmap.Format != System.Windows.Media.PixelFormats.Pbgra32)
-			{
-				return false;
-			}
-			if (gdipBitmap.PixelFormat != System.Drawing.Imaging.PixelFormat.Format32bppArgb)
-			{
-				return false;
-			}
-			wicBitmap.Lock();
-			// GDI+ ビットマップから WIC ビットマップへ転送する際、ウィンドウ矩形やユーザー定義クリッピング矩形を考慮すれば、もっと効率化できる？
-			// 単純にそのままごっそりブロック コピーしてしまったほうがむしろ速い？
-			var gdipBitmapLockData = gdipBitmap.LockBits(
-				new System.Drawing.Rectangle(0, 0, gdipBitmap.Width, gdipBitmap.Height),
-				System.Drawing.Imaging.ImageLockMode.ReadOnly,
-				gdipBitmap.PixelFormat);
-			// GDI+ の PixelFormat と WIC の PixelFormat はメンバーの命名規則が異なるが、
-			// どちらも DIB は GDI からの仕様に準じているため、BGRA の順で並んでいる。
-			// GDI+ の命名は昔の Direct3D の D3DFMT_A8R8G8B8 に、WIC の命名は DXGI の DXGI_FORMAT_B8G8R8A8_UNORM に近い。
-			// ともに 32bit であればパディングも考慮する必要がないので、そのまま高速にブロック コピーできる。
-			Kernel32DllMethodsInvoker.CopyMemory(wicBitmap.BackBuffer, gdipBitmapLockData.Scan0,
-				new IntPtr(wicBitmap.PixelHeight * wicBitmap.BackBufferStride));
-			gdipBitmap.UnlockBits(gdipBitmapLockData);
-			wicBitmap.AddDirtyRect(new System.Windows.Int32Rect(0, 0, wicBitmap.PixelWidth, wicBitmap.PixelHeight));
-			wicBitmap.Unlock();
-			return true;
+			return User32DllMethodsInvoker.GetWindow(hwnd, User32DllMethodsInvoker.CommandOfGetWindow.GW_HWNDPREV);
 		}
 
-		#endregion
-
-		public static System.Windows.Media.Imaging.WriteableBitmap CaptureWindow(IntPtr hwnd)
+		public static bool HasOwnerWindow(IntPtr hwnd)
 		{
-			if (!User32DllMethodsInvoker.IsWindow(hwnd))
-			{
-				return null;
-			}
-			// このプロセスでの処理中に他プロセスのターゲット ウィンドウ ハンドルが無効化されることは十分にありうる。
-			// 例外を投げたりしないで、各 API の戻り値を随時チェックしていくほうが無難。
-			// アサーションも失敗させない。
-			var winRect = new Win32Commons.RECT();
-			bool retval = User32DllMethodsInvoker.GetWindowRect(hwnd, ref winRect);
-			if (!retval || winRect.Width <= 0 || winRect.Height <= 0)
-			{
-				return null;
-			}
-			using (var gdipBitmap = CaptureWindow(hwnd, winRect.Width, winRect.Height))
-			{
-				System.Diagnostics.Debug.Assert(gdipBitmap != null);
-				System.Diagnostics.Debug.Assert(gdipBitmap.PixelFormat == System.Drawing.Imaging.PixelFormat.Format32bppArgb);
-				// TODO: DPI はどうする？　高 DPI 設定の場合でも論理ピクセルではなく実ピクセル単位で画像データを取得するべき。
-				var wicBitmap = new System.Windows.Media.Imaging.WriteableBitmap(winRect.Width, winRect.Height,
-					MyDeviceHelper.DefaultDpi, MyDeviceHelper.DefaultDpi,
-					System.Windows.Media.PixelFormats.Pbgra32, null);
-				CopyGdipBitmapToWicBitmap(gdipBitmap, wicBitmap);
-				return wicBitmap;
-			}
+			return GetOwnerWindow(hwnd) != IntPtr.Zero;
 		}
-
 
 		public static bool HasNoOwnerWindow(IntPtr hwnd)
 		{
-			return User32DllMethodsInvoker.GetWindow(hwnd, User32DllMethodsInvoker.CommandOfGetWindow.GW_OWNER) == IntPtr.Zero;
+			return GetOwnerWindow(hwnd) == IntPtr.Zero;
 		}
 
 		public static string GetWindowText(IntPtr hwnd)
@@ -629,6 +724,60 @@ namespace MyMiscHelpers
 			return winHandleList;
 		}
 
+		/// <summary>
+		/// 指定されたプロセスが現在表示しているモーダル ダイアログのウィンドウ ハンドルをすべて列挙する。
+		/// </summary>
+		/// <param name="ownerProcessId"></param>
+		/// <returns></returns>
+		public static List<IntPtr> EnumSubModalDialogs(uint ownerProcessId)
+		{
+			var winHandleList = new List<IntPtr>();
+			User32DllMethodsInvoker.EnumWindows(new User32DllMethodsInvoker.EnumWindowsProcDelegate((hWnd, lParam) =>
+				{
+					uint procId;
+					User32DllMethodsInvoker.GetWindowThreadProcessId(hWnd, out procId);
+					if (procId == ownerProcessId)
+					{
+						var winStyle = User32DllMethodsInvoker.GetWindowStyle(hWnd);
+						if (winStyle.HasFlag(User32DllMethodsInvoker.WindowStyles.DS_MODALFRAME))
+						{
+							winHandleList.Add(hWnd);
+						}
+					}
+					return true; // 列挙を続行。
+				}),
+				IntPtr.Zero);
+			return winHandleList;
+		}
+
+		// ツールヒント（ツールチップ）が表示されると、Process.MainWindowHandle が切り替わってしまう模様。ツールヒントも一種のウィンドウ。
+		// したがってこのプロパティでプロセスのメインウィンドウ（WPF の System.Windows.Application.MainWindow など）を安定して取得することはできない。
+		// CommCtrl.h で定義されている TOOLTIPS_CLASS すなわち "tooltips_class32" とウィンドウクラス名を比較して、ツールヒントか否かを判定する？
+		// プロセスに属するトップレベルの可視ウィンドウをすべて列挙してからチェックをかける？
+		// Windows Forms の場合、MainWindowHandle に影響するのはメニュー、コンテキストメニュー、ツールヒント、そしてウィンドウのシステムメニュー。他にもあるかもしれない。
+		// WPF の Menu/ContextMenu/ToolTip は MainWindowHandle に影響しないようだが、ウィンドウのシステムメニューは影響する。
+
+		public static List<IntPtr> EnumProcessRootVisibleWindows(uint ownerProcessId)
+		{
+			var winHandleList = new List<IntPtr>();
+			User32DllMethodsInvoker.EnumWindows(new User32DllMethodsInvoker.EnumWindowsProcDelegate((hWnd, lParam) =>
+				{
+					uint procId;
+					User32DllMethodsInvoker.GetWindowThreadProcessId(hWnd, out procId);
+					if (procId == ownerProcessId)
+					{
+						if (User32DllMethodsInvoker.IsWindowVisible(hWnd) && HasNoOwnerWindow(hWnd))
+						{
+							winHandleList.Add(hWnd);
+						}
+					}
+					return true; // 列挙を続行。
+				}),
+				IntPtr.Zero);
+			return winHandleList;
+		}
+
+
 		public static void WakeupProcesses(string procName)
 		{
 			var targetProcesses = System.Diagnostics.Process.GetProcessesByName(procName);
@@ -659,33 +808,135 @@ namespace MyMiscHelpers
 			// ウィンドウを最前面に表示する。
 			User32DllMethodsInvoker.SetForegroundWindow(hwnd);
 		}
+
+		public static IntPtr FindDesktopTaskBarListWindowHandle()
+		{
+			// クラス名は Windows 8.1 上で Spy++ を使って調べた結果。Windows 7 と同じ。
+			// Win8.1 の場合、タスク バーの端には EdgeUiInputWndClass というクラス名のトップレベル ウィンドウも存在する模様。
+			// おそらくマウスによるスワイプ代替操作などの目的で存在する隠しウィンドウらしい。
+			// HACK: Windows 10 だとどうなる？
+			var hWndTaskBarRoot = User32DllMethodsInvoker.FindWindow("Shell_TrayWnd", null); // タスク バー全体。
+#if false
+			return hWndTaskBarRoot;
+#else
+			if (hWndTaskBarRoot != IntPtr.Zero)
+			{
+				var retVal = IntPtr.Zero;
+				User32DllMethodsInvoker.EnumChildWindows(hWndTaskBarRoot,
+					(hWnd, lParam) =>
+					{
+						var classNameBuffer = new StringBuilder(128);
+						if (User32DllMethodsInvoker.GetClassName(hWnd, classNameBuffer, classNameBuffer.Capacity) != 0)
+						{
+							// アプリケーションのタスク バー ボタン リスト表示領域。
+							if (classNameBuffer.ToString() == "MSTaskListWClass")
+							{
+								retVal = hWnd;
+								return false; // 列挙を停止。
+							}
+						}
+						return true; // 列挙を続行。
+					}, IntPtr.Zero);
+				if (retVal == IntPtr.Zero)
+				{
+					System.Diagnostics.Debug.WriteLine("Failed to find the task list window!!");
+				}
+				return retVal;
+			}
+			else
+			{
+				System.Diagnostics.Debug.WriteLine("Failed to find the root window of task bar!!");
+				return IntPtr.Zero;
+			}
+#endif
+		}
+
+		public static System.Diagnostics.FileVersionInfo GetProcessExeFileVersionInfo(IntPtr hProc)
+		{
+			// アプリが 32bit で、調査対象が 64bit プロセスの場合、Process.MainModule や Process.Modules にアクセスしようとすると Win32Exception がスローされる。
+			// 32bit プロセスは 64bit プロセスのモジュールにアクセスできないという制約があるらしい。EXE ファイルのパスやバージョン番号を取得することすらままならない。
+			// Windows Vista 以降で実装された Win32 API である QueryFullProcessImageName() と、FileVersionInfo.GetVersionInfo() を使うしかなさそう。
+			// .NET 4.5 は XP を動作対象外にしているので、もはや問題ではない。
+
+			const int strBufCapacity = 1024;
+			int inoutStrLen = strBufCapacity;
+			var strBuf = new StringBuilder(strBufCapacity);
+			if (Kernel32DllMethodsInvoker.QueryFullProcessImageName(hProc, 0, strBuf, ref inoutStrLen))
+			{
+				return System.Diagnostics.FileVersionInfo.GetVersionInfo(strBuf.ToString());
+			}
+			else
+			{
+				return null;
+			}
+		}
 	}
 
-
-	public class MyCustomWinProc
+	public sealed class MyLogicalAscendingStringComparer : IComparer<string>
 	{
-		public event Action PreMinimized;
-		//public event Action PreMaximized;
-
-		System.Windows.Interop.HwndSource source;
-		System.Windows.Interop.HwndSourceHook hook;
-
-		public int MinWindowWidth { get; set; }
-		public int MinWindowHeight { get; set; }
-
-		public void AttachCustomWndProc(IntPtr hwnd)
+		public int Compare(string a, string b)
 		{
-			this.source = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
-			this.hook = this.MyWndProc;
-			this.source.AddHook(this.hook);
+			return ShellWApiDllMethodsInvoker.StrCmpLogicalW(a ?? "", b ?? "");
+		}
+	}
+
+	public sealed class MyLogicalDescendingStringComparer : IComparer<string>
+	{
+		public int Compare(string a, string b)
+		{
+			return ShellWApiDllMethodsInvoker.StrCmpLogicalW(b ?? "", a ?? "");
+		}
+	}
+
+	/// <summary>
+	/// カスタム プロシージャーのアタッチとデタッチを管理する RAII クラス。
+	/// </summary>
+	/// <remarks>
+	/// IDisposable を実装するのも一つの手だが、アプリ起動から終了までずっと生存し続ける必要がある場合は、
+	/// IDisposable を実装することによるメリットはほとんどない。
+	/// </remarks>
+	public class MyCustomWinProcManagerBase
+	{
+		System.Windows.Interop.HwndSource _source;
+		System.Windows.Interop.HwndSourceHook _hook;
+
+		public void AttachCustomWndProc(IntPtr hwnd, System.Windows.Interop.HwndSourceHook customWndProc)
+		{
+			System.Diagnostics.Debug.Assert(this._source == null && this._hook == null);
+			this._source = System.Windows.Interop.HwndSource.FromHwnd(hwnd);
+			this._hook = customWndProc; // デリゲートのキャッシュ。
+			System.Diagnostics.Debug.Assert(this._hook != null);
+			this._source.AddHook(this._hook);
 		}
 
 		public void DetachCustomWndProc()
 		{
-			System.Diagnostics.Debug.Assert(this.source != null && this.hook != null);
-			this.source.RemoveHook(this.hook);
-			this.source = null;
-			this.hook = null;
+			//System.Diagnostics.Debug.Assert(this.source != null && this.hook != null);
+			if (this._source != null && this._hook != null)
+			{
+				this._source.RemoveHook(this._hook);
+			}
+			this._source = null;
+			this._hook = null;
+		}
+	}
+
+	/// <summary>
+	/// レイヤード ウィンドウ用のユーティリティ派生クラス。
+	/// </summary>
+	public class MyCustomLayeredWinProcManager : MyCustomWinProcManagerBase
+	{
+		public event Action PreMinimized;
+		//public event Action PreMaximized;
+
+		public int MinWindowWidth { get; set; }
+		public int MinWindowHeight { get; set; }
+
+		// C++ の場合、派生クラスでオーバーロードを定義すると基底クラスのメソッドすべてを隠ぺいすることになるが、C# では両方とも可視になる。
+		// C# で new キーワードを使う必要があるのは、まったく同じシグネチャのメソッドを派生クラスで定義するときのみ。
+		public void AttachCustomWndProc(IntPtr hwnd)
+		{
+			base.AttachCustomWndProc(hwnd, this.MyWndProc);
 		}
 
 		private IntPtr MyWndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
@@ -797,156 +1048,39 @@ namespace MyMiscHelpers
 		}
 	}
 
+	// マネージ コードでも可能なグローバル フックは、WH_KEYBOARD_LL, WH_MOUSE_LL の2つのみらしい。
+	// http://azumaya.s101.xrea.com/wiki/index.php?%B3%D0%BD%F1%2FC%A2%F4%2F%A5%B0%A5%ED%A1%BC%A5%D0%A5%EB%A5%D5%A5%C3%A5%AF
 
-	// デスクトップの解像度が変更された場合に画像バッファを再作成することを考慮して、IDisposable 実装する。
-	// HACK: DPI の変更（論理ピクセル サイズの変更）に対応する必要はあるか？
-	// なお、WIC ビットマップのほうは明示的に解放する手段がないが、念のため GC を強制起動しておいたほうがいいかもしれない。
-	// もういっそ MFC or WTL + Direct2D 1.1 でネイティブ実装したほうがリソース管理は楽になる気もするが、
-	// レイヤード ウィンドウまわりの実装が恐ろしくダルい……
-
-	public class MyWindowCaptureBuffer : IDisposable
+	public class MyCustomWindowsHookProcManagerBase
 	{
-		System.Windows.Media.Imaging.WriteableBitmap wicBitmap;
-		// GDI+.NET の Bitmap は IDisposable 実装だが、WIC の WriteableBitmap はそうではない。
-		System.Drawing.Bitmap gdipBitmap;
+		IntPtr _hook;
+		User32DllMethodsInvoker.HookProcDelegate _proc;
 
-		bool isDisposed = false;
-
-		public System.Windows.Media.Imaging.WriteableBitmap CapturedImage { get { return this.wicBitmap; } }
-
-		//public System.Windows.Int32Rect ClippingRect { get; set; }
-
-		public MyWindowCaptureBuffer(int pixelWidth, int pixelHeight)
+		public void AttachCustomWndProc(User32DllMethodsInvoker.WindowsHookType hookType, User32DllMethodsInvoker.HookProcDelegate customWndProc, IntPtr hModule, uint threadId = 0)
 		{
-			if (pixelWidth <= 0 || pixelHeight <= 0)
-			{
-				System.Diagnostics.Debug.Assert(false);
-				throw new ArgumentException("Invalid size of image buffer!!");
-			}
-			this.wicBitmap = new System.Windows.Media.Imaging.WriteableBitmap(pixelWidth, pixelHeight,
-				MyDeviceHelper.DefaultDpi, MyDeviceHelper.DefaultDpi,
-				System.Windows.Media.PixelFormats.Pbgra32, null);
-			this.gdipBitmap = new System.Drawing.Bitmap(pixelWidth, pixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+			this._proc = customWndProc; // デリゲートのキャッシュ。
+			System.Diagnostics.Debug.Assert(this._proc != null);
+			this._hook = User32DllMethodsInvoker.SetWindowsHookEx(hookType,
+				 this._proc,
+				 hModule,
+				 threadId);
+			System.Diagnostics.Debug.Assert(this._hook != IntPtr.Zero);
 		}
 
-		~MyWindowCaptureBuffer()
+		public void DetachCustomWndProc()
 		{
-			// リソースの解放。
-			this.OnDispose(false);
+			if (this._hook != IntPtr.Zero)
+			{
+				User32DllMethodsInvoker.UnhookWindowsHookEx(this._hook);
+			}
+			this._hook = IntPtr.Zero;
+			this._proc = null;
 		}
 
-		protected virtual void OnDispose(bool disposesManagedResources)
+		protected IntPtr CallNextHookEx(int nCode, IntPtr wParam, IntPtr lParam)
 		{
-			// よくある IDisposable 実装のサンプルからパクってきたメソッド実装コードだが、
-			// protected virtual な仮想メソッドを定義しているのは、
-			// 派生クラスでもリソースを追加管理するようなときに備えるためらしい。
-			// 派生クラスでオーバーライドする際には、基底クラスの OnDispose(bool) をきちんと呼び出すようにすればよい。
-
-			lock (this)
-			{
-				if (this.isDisposed)
-				{
-					// 既に呼びだし済みであるならば何もしない。
-					return;
-				}
-
-				if (disposesManagedResources)
-				{
-					// マネージ リソースの解放。
-					MyGenericsHelper.SafeDispose(ref this.gdipBitmap);
-					this.wicBitmap = null;
-				}
-
-				// TODO: IntPtr 経由などのアンマネージ リソースの解放はココで行なう。
-
-				this.isDisposed = true;
-			}
-		}
-
-		protected void ThrowExceptionIfDisposed()
-		{
-			if (this.isDisposed)
-			{
-				throw new ObjectDisposedException(this.GetType().ToString());
-			}
-		}
-
-		/// <summary>
-		/// IDisposable.Dispose() の実装。
-		/// </summary>
-		public void Dispose()
-		{
-			// リソースの解放。
-			this.OnDispose(true);
-
-			// このオブジェクトのデストラクタを GC 対象外とする。
-			GC.SuppressFinalize(this);
-		}
-
-		public bool CaptureWindow(IntPtr hwnd, System.Windows.Int32Rect clippingRect)
-		{
-			System.Diagnostics.Debug.Assert(this.wicBitmap != null && this.gdipBitmap != null);
-			if (!User32DllMethodsInvoker.IsWindow(hwnd))
-			{
-				return false;
-			}
-
-			MyWin32InteropHelper.CaptureWindow(hwnd, this.gdipBitmap, clippingRect);
-
-			return MyWin32InteropHelper.CopyGdipBitmapToWicBitmap(this.gdipBitmap, this.wicBitmap);
-		}
-
-		public void SaveImageAsPngFile(string fileName, IntPtr hwnd, System.Windows.Int32Rect clippingRect)
-		{
-			SaveImageAsPngFile(this.wicBitmap, fileName, hwnd, clippingRect);
-		}
-
-		private static void SaveImageAsPngFile(System.Windows.Media.Imaging.WriteableBitmap bitmap, string fileName, IntPtr hwnd, System.Windows.Int32Rect clippingRect)
-		{
-			if (bitmap == null)
-			{
-				throw new ArgumentNullException("Invalid bitmap!!");
-			}
-
-			if (!User32DllMethodsInvoker.IsWindow(hwnd))
-			{
-				throw new ArgumentException("Invalid window!!");
-			}
-
-			// クライアント矩形やユーザー定義クリッピング矩形で切り出した内容のみを保存する。
-			var intersectRect = MyWin32InteropHelper.CalcClientIntersectRect(hwnd, clippingRect);
-
-			System.Diagnostics.Debug.Assert(intersectRect.HasArea);
-
-			var tempSubBitmap = new System.Windows.Media.Imaging.WriteableBitmap(intersectRect.Width, intersectRect.Height,
-				MyDeviceHelper.DefaultDpi, MyDeviceHelper.DefaultDpi, System.Windows.Media.PixelFormats.Pbgra32, null);
-
-			try
-			{
-				tempSubBitmap.Lock();
-				bitmap.CopyPixels(new System.Windows.Int32Rect(0, 0, intersectRect.Width, intersectRect.Height),
-					tempSubBitmap.BackBuffer,
-					tempSubBitmap.PixelWidth * tempSubBitmap.PixelHeight * 4,
-					tempSubBitmap.PixelWidth * 4);
-			}
-			catch (Exception)
-			{
-				throw;
-			}
-			finally
-			{
-				tempSubBitmap.Unlock();
-			}
-
-			using (var stream = new System.IO.FileStream(fileName,
-				System.IO.FileMode.Create, System.IO.FileAccess.Write))
-			{
-				var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder();
-				//encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
-				encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(tempSubBitmap));
-				encoder.Save(stream);
-			}
-			tempSubBitmap = null;
+			System.Diagnostics.Debug.Assert(this._hook != null);
+			return User32DllMethodsInvoker.CallNextHookEx(this._hook, nCode, wParam, lParam);
 		}
 	}
 }

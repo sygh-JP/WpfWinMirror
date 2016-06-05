@@ -90,7 +90,7 @@ namespace WpfWinMirror
 		}
 		MyTimerIntervalMillisec imageUpdateTimerIntervalMillisec = MyTimerIntervalMillisec.Default;
 
-		MyMiscHelpers.MyCustomWinProc customWinProc = new MyMiscHelpers.MyCustomWinProc();
+		MyMiscHelpers.MyCustomLayeredWinProcManager customWinProc = new MyMiscHelpers.MyCustomLayeredWinProcManager();
 
 		const string AppTitle = "WPF WinMirror";
 
@@ -1191,67 +1191,19 @@ namespace WpfWinMirror
 		public bool IsTransparentMode
 		{
 			get { return this.isTransparentMode; }
-			set
-			{
-				if (!Equals(this.isTransparentMode, value))
-				{
-					this.isTransparentMode = value;
-					this.RaisePropertyChanged();
-				}
-			}
+			set { base.SetSingleProperty(ref this.isTransparentMode, value); }
 		}
 
 		public double ImageOpacity
 		{
 			get { return this.imageOpacity; }
-			set
-			{
-				if (!Equals(this.imageOpacity, value))
-				{
-					this.imageOpacity = value;
-					this.RaisePropertyChanged();
-				}
-			}
+			set { base.SetSingleProperty(ref this.imageOpacity, value); }
 		}
 
 		public void Reset()
 		{
 			this.IsTransparentMode = false;
 			this.ImageOpacity = 1;
-		}
-	}
-}
-
-namespace MyWpfHelpers
-{
-	/// <summary>
-	/// INotifyPropertyChanged の実装を補助する抽象クラス。
-	/// </summary>
-	public abstract class MyNotifyPropertyChangedBase : INotifyPropertyChanged
-	{
-		public event PropertyChangedEventHandler PropertyChanged;
-		// Target から Source へのバインディングだけであれば、INotifyPropertyChanged を実装する必要はない。また、自動プロパティでも OK。
-		// Source から Target へのバインディングもサポートして双方向バインディングするためには、
-		// INotifyPropertyChanged の実装が必須であり、また自動プロパティが使えないので注意。
-		// なお、OnPropertyChanged() 仮想メソッドの個別実装は骨が折れるので、System.Linq.Expressions によるバインディング ヘルパーを使う。
-		// MyMiscHelpers.MyGenericsHelper.GetMemberName() にラムダ式を渡すことで、プロパティの文字列表現を取得できる。
-		// C# 5.0 であれば、Caller Info 属性を使うともっと簡潔かつ効率的に実装できそう。
-		// Caller Info は C/C++ の __FILE__ や __LINE__ 同様コンパイル時に処理されるので、リフレクションよりも実行効率がよい。
-
-		protected void NotifyPropertyChanged(string propertyName)
-		{
-			if (this.PropertyChanged != null)
-			{
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-			}
-		}
-
-		protected void RaisePropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = "")
-		{
-			if (this.PropertyChanged != null)
-			{
-				this.PropertyChanged(this, new PropertyChangedEventArgs(propertyName));
-			}
 		}
 	}
 }

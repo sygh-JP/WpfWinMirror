@@ -980,6 +980,9 @@ namespace WpfWinMirror
 		}
 	}
 
+	// HACK: DelegateCommand を使って書き直す。
+	// TODO: 最小化されているウィンドウはキャプチャできない旨を注意点として記載。
+	// ターゲットが最小化されている、ということを GUI に表示できるとよいかも。
 
 	// MenuItem.Command にバインドできるクラス。
 	internal class WindowInfo : ICommand

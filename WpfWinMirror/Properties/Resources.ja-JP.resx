@@ -163,10 +163,10 @@
     <value>プリセット</value>
   </data>
   <data name="TransparentMode" xml:space="preserve">
-    <value>[透過モード] (T キーで切替)</value>
+    <value>- [透過モード] (T キーで切替)</value>
   </data>
   <data name="menuItemSaveImageAs_Header" xml:space="preserve">
-    <value>画像に名前を付けて保存(_A)...</value>
+    <value>キャプチャ画像に名前を付けて保存(_A)...</value>
   </data>
   <data name="ErrMsgFailedToSaveImage" xml:space="preserve">
     <value>画像ファイルの保存に失敗しました。</value>
@@ -190,7 +190,7 @@
     <value>元に戻す</value>
   </data>
   <data name="menuItemFitWindowToImage_Header" xml:space="preserve">
-    <value>画像サイズにウィンドウを合わせる</value>
+    <value>キャプチャ画像サイズにウィンドウを合わせる</value>
   </data>
   <data name="menuItemAboutThisApp_Header" xml:space="preserve">
     <value>このアプリケーションについて</value>
@@ -203,5 +203,32 @@
   </data>
   <data name="menuItemOpacityRoot_Header" xml:space="preserve">
     <value>不透明度</value>
+  </data>
+  <data name="menuItemLoadImage_Header" xml:space="preserve">
+    <value>オーバーレイ用の画像ファイルを開く...</value>
+  </data>
+  <data name="menuItemScaleFactorRoot_Header" xml:space="preserve">
+    <value>表示倍率</value>
+  </data>
+  <data name="ErrMsgFailedToLoadImage" xml:space="preserve">
+    <value>画像ファイルの読み込みに失敗しました。</value>
+  </data>
+  <data name="menuItemBackgroundPatternBlack_Header" xml:space="preserve">
+    <value>黒</value>
+  </data>
+  <data name="menuItemBackgroundPatternGray_Header" xml:space="preserve">
+    <value>グレー</value>
+  </data>
+  <data name="menuItemBackgroundPatternLattice_Header" xml:space="preserve">
+    <value>格子</value>
+  </data>
+  <data name="menuItemBackgroundPatternNone_Header" xml:space="preserve">
+    <value>なし</value>
+  </data>
+  <data name="menuItemBackgroundPatternRoot_Header" xml:space="preserve">
+    <value>背景パターン</value>
+  </data>
+  <data name="menuItemBackgroundPatternWhite_Header" xml:space="preserve">
+    <value>白</value>
   </data>
 </root>

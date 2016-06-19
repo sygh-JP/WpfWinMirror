@@ -41,6 +41,32 @@
             <Setter Property="Margin" Value="2"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
+        <DrawingBrush x:Key="LatticePatternBrushKey"
+                      Viewport="0,0,64,64"
+                      ViewportUnits="Absolute"
+                      TileMode="Tile">
+            <DrawingBrush.Drawing>
+                <DrawingGroup>
+                    <GeometryDrawing Brush="White">
+                        <GeometryDrawing.Geometry>
+                            <RectangleGeometry Rect="0,0,128,128" />
+                        </GeometryDrawing.Geometry>
+                    </GeometryDrawing>
+                    <GeometryDrawing>
+                        <GeometryDrawing.Geometry>
+                            <GeometryGroup>
+                                <RectangleGeometry Rect="0,0,64,64"/>
+                                <RectangleGeometry Rect="64,64,64,64"/>
+                            </GeometryGroup>
+                        </GeometryDrawing.Geometry>
+                        <GeometryDrawing.Brush>
+                            <!-- 配色は Adobe Photoshop と同じ。 -->
+                            <SolidColorBrush Color="#FFCCCCCC"/>
+                        </GeometryDrawing.Brush>
+                    </GeometryDrawing>
+                </DrawingGroup>
+            </DrawingBrush.Drawing>
+        </DrawingBrush>
     </Window.Resources>
 
     <Window.CommandBindings>
@@ -115,8 +141,8 @@
     </Window.InputBindings>
 
     <Window.ContextMenu>
-        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、少しだけ Mac っぽくなる。 -->
-        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" FontFamily="Segoe UI SemiBold" FontSize="14">
+        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、少しだけ Mac OS X っぽくなる。 -->
+        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" Closed="mainContextMenu_Closed" FontFamily="Segoe UI SemiBold" FontSize="14">
             <!-- MenuItem の IsCheckable="True" にすると、自動的に IsChecked プロパティがトグル動作するようになる。 -->
             <MenuItem Name="menuItemTargetWindowRoot" Header="{x:Static props:Resources.menuItemTargetWindowRoot_Header}">
             </MenuItem>
@@ -175,6 +201,49 @@
                 </MenuItem>
             </MenuItem>
             <Separator/>
+            <MenuItem Name="menuItemBackgroundPatternRoot" Header="{x:Static props:Resources.menuItemBackgroundPatternRoot_Header}">
+                <MenuItem Name="menuItemBackgroundPatternNone" Header="{x:Static props:Resources.menuItemBackgroundPatternNone_Header}"
+                          Click="menuItemBackgroundPatternNone_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Name="menuItemBackgroundPatternBlack" Header="{x:Static props:Resources.menuItemBackgroundPatternBlack_Header}"
+                          Click="menuItemBackgroundPatternBlack_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Name="menuItemBackgroundPatternGray" Header="{x:Static props:Resources.menuItemBackgroundPatternGray_Header}"
+                          Click="menuItemBackgroundPatternGray_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Name="menuItemBackgroundPatternWhite" Header="{x:Static props:Resources.menuItemBackgroundPatternWhite_Header}"
+                          Click="menuItemBackgroundPatternWhite_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+                <MenuItem Name="menuItemBackgroundPatternLattice" Header="{x:Static props:Resources.menuItemBackgroundPatternLattice_Header}"
+                          Click="menuItemBackgroundPatternLattice_Click">
+                    <MenuItem.Icon>
+                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
+                        </Border>
+                    </MenuItem.Icon>
+                </MenuItem>
+            </MenuItem>
+            <Separator/>
             <!-- フレームレート。 -->
             <MenuItem Name="menuItemFrameRateRoot" Header="{x:Static props:Resources.menuItemFrameRateRoot_Header}">
                 <MenuItem Name="menuItemFrameRateStop" Header="{x:Static props:Resources.menuItemFrameRateStop_Header}"
@@ -217,14 +286,48 @@
             <Separator/>
             <MenuItem Name="menuItemOpacityRoot" Header="{x:Static props:Resources.menuItemOpacityRoot_Header}">
                 <DockPanel Visibility="Visible">
-                    <Slider Name="sliderImageOpacity" Minimum="0.1" Maximum="1.0" LargeChange="0.2" SmallChange="0.1"
+                    <Slider
+                        LargeChange="0.2" SmallChange="0.1"
+                        Minimum="{Binding Path=PlacementTarget.DataContext.ImageOpacityMin, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
+                        Maximum="{Binding Path=PlacementTarget.DataContext.ImageOpacityMax, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
                         Value="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
                         Width="100" Margin="4,0" VerticalAlignment="Center"/>
-                    <TextBox Name="textboxImageOpacity" Width="50"
-                     TextAlignment="Right"
-                     VerticalAlignment="Center" VerticalContentAlignment="Center"
-                     Text="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}"
-                     KeyDown="UpdateTextBoxBindingSourceOnEnterKeyDown"/>
+                    <TextBox
+                        Width="50"
+                         TextAlignment="Right"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center"
+                         Text="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}"
+                         KeyDown="UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown">
+                        <TextBox.InputBindings>
+                            <!-- Adobe Photoshop のように、スピンコントロールは付けないが上下キーで増減する。 -->
+                            <!-- HACK: マウスホイールの上下にも対応したい。 -->
+                            <!-- できれば兄弟要素の Slider.IncreaseSmall や Slider.DecreaseSmall を発動させたいが…… -->
+                            <KeyBinding Key="Up" Command="{Binding IncreaseImageOpacityCommand}"/>
+                            <KeyBinding Key="Down" Command="{Binding DecreaseImageOpacityCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </DockPanel>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemScaleFactorRoot" Header="{x:Static props:Resources.menuItemScaleFactorRoot_Header}">
+                <DockPanel Visibility="Visible">
+                    <Slider
+                        LargeChange="0.2" SmallChange="0.1"
+                        Minimum="{Binding Path=PlacementTarget.DataContext.ScaleFactorMin, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
+                        Maximum="{Binding Path=PlacementTarget.DataContext.ScaleFactorMax, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
+                        Value="{Binding Path=PlacementTarget.DataContext.ScaleFactor, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
+                        Width="100" Margin="4,0" VerticalAlignment="Center"/>
+                    <TextBox
+                        Width="50"
+                         TextAlignment="Right"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center"
+                         Text="{Binding Path=PlacementTarget.DataContext.ScaleFactor, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}"
+                         KeyDown="UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Up" Command="{Binding IncreaseScaleFactorCommand}"/>
+                            <KeyBinding Key="Down" Command="{Binding DecreaseScaleFactorCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
                 </DockPanel>
             </MenuItem>
             <Separator/>
@@ -251,6 +354,13 @@
                       Click="menuItemSaveImageAs_Click">
                 <MenuItem.Icon>
                     <Image Source="./Resources/compactflash_16p.png" Width="16" Height="16"/>
+                </MenuItem.Icon>
+            </MenuItem>
+            <Separator/>
+            <MenuItem Name="menuItemLoadImage" Header="{x:Static props:Resources.menuItemLoadImage_Header}"
+                      Click="menuItemLoadImage_Click">
+                <MenuItem.Icon>
+                    <Image Source="./Resources/generic_picture_16p.png" Width="16" Height="16"/>
                 </MenuItem.Icon>
             </MenuItem>
             <Separator/>
@@ -322,7 +432,7 @@
     </Window.Triggers>
     -->
 
-    <Grid Name="mainRootGrid" Background="#80202020">
+    <Grid Name="gridAllRoot">
 
         <!-- Viewbox が Stretch="Uniform" だと、たとえ等倍表示できる状況であってもラスター画像はボケてしまう。 -->
         <!-- 拡大・縮小表示する場合は、クリッピング矩形を作成する際にどのみちスケーリング換算が必要となるので、直接 RenderTransform などを制御したほうがいいかも。 -->
@@ -332,11 +442,27 @@
         通常のタイトル バーを持つアプリであれば、 コピー画像はタイトル バーもメニューバーもなくなるので区別が付きやすいが、
         非クライアント領域の描画も完全制御している Google Chrome や Visual Studio 2012 のようなアプリをターゲットにしていると混乱しやすい。
         -->
-        <Canvas Name="canvasMainImage" UseLayoutRounding="True" IsHitTestVisible="False"
-                Width="{Binding ElementName=mainImage, Path=Width}"
-                Height="{Binding ElementName=mainImage, Path=Height}">
-            <Image Name="mainImage" UseLayoutRounding="True" IsHitTestVisible="False" Opacity="{Binding Path=ImageOpacity}"/>
-        </Canvas>
+        <Grid Name="gridForBack" Opacity="{Binding Path=ImageOpacity}" Background="{StaticResource LatticePatternBrushKey}">
+            <Grid Name="gridForImage">
+                <Grid.RenderTransform>
+                    <ScaleTransform ScaleX="{Binding ScaleFactor}" ScaleY="{Binding ScaleFactor}"/>
+                </Grid.RenderTransform>
+                <Canvas Name="canvasMainImage" UseLayoutRounding="True" IsHitTestVisible="False"
+                        Width="{Binding ElementName=mainImage, Path=Width}"
+                        Height="{Binding ElementName=mainImage, Path=Height}"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        >
+                    <Image Name="mainImage" UseLayoutRounding="True" IsHitTestVisible="False"/>
+                </Canvas>
+                <Canvas Name="canvasOverlayImage" UseLayoutRounding="True" IsHitTestVisible="False"
+                        Width="{Binding ElementName=overlayImage, Path=Width}"
+                        Height="{Binding ElementName=overlayImage, Path=Height}"
+                        HorizontalAlignment="Left" VerticalAlignment="Top"
+                        >
+                    <Image Name="overlayImage" UseLayoutRounding="True" IsHitTestVisible="False"/>
+                </Canvas>
+            </Grid>
+        </Grid>
 
         <Border Name="outerBorder" BorderThickness="1" BorderBrush="DodgerBlue"/>
         <Border Name="glowBorder" BorderThickness="3" BorderBrush="DodgerBlue" Opacity="1">
@@ -355,66 +481,87 @@
 
         <!--
         <Line X1="0" Y1="0"
-              X2="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y2="0"
+              X2="{Binding Path=ActualWidth, ElementName=gridAllRoot}" Y2="0"
               Stroke="DodgerBlue" StrokeThickness="1"/>
         <Line X1="0" Y1="0"
-              X2="0" Y2="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+              X2="0" Y2="{Binding Path=ActualHeight, ElementName=gridAllRoot}"
               Stroke="DodgerBlue" StrokeThickness="1"/>
-        <Line X1="0" Y1="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
-              X2="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y2="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+        <Line X1="0" Y1="{Binding Path=ActualHeight, ElementName=gridAllRoot}"
+              X2="{Binding Path=ActualWidth, ElementName=gridAllRoot}" Y2="{Binding Path=ActualHeight, ElementName=gridAllRoot}"
               Stroke="DodgerBlue" StrokeThickness="1"/>
-        <Line X1="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y1="0"
-              X2="{Binding Path=ActualWidth, ElementName=mainRootGrid}" Y2="{Binding Path=ActualHeight, ElementName=mainRootGrid}"
+        <Line X1="{Binding Path=ActualWidth, ElementName=gridAllRoot}" Y1="0"
+              X2="{Binding Path=ActualWidth, ElementName=gridAllRoot}" Y2="{Binding Path=ActualHeight, ElementName=gridAllRoot}"
               Stroke="DodgerBlue" StrokeThickness="1"/>
         -->
 
         <TextBlock Name="textblockNoImage" Text="&lt;No Image&gt;" IsHitTestVisible="False" Padding="8,4,8,8"
                    HorizontalAlignment="Center" VerticalAlignment="Center"
-                   FontFamily="Segoe UI SemiBold" FontSize="24"
-                   Foreground="Gainsboro" Background="DimGray"/>
+                   FontFamily="Segoe UI" FontSize="28"
+                   Foreground="Gainsboro" Background="DimGray"
+                   Visibility="{Binding NoImageHintVisibility}"/>
         <!-- タイトル バーの代わりの半透明矩形。 -->
         <!-- アプリがアクティブな状態で完全不透明の矩形がタイトル バー領域に存在すると、クリッピング矩形の作成時に不便なので、
         あえてアプリ名やシステム コマンド パネルとは分ける。なお、半透明矩形にテキストを描画するときは ClearType が効かなくなる。 -->
         <Rectangle Height="{x:Static SystemParameters.CaptionHeight}" IsHitTestVisible="False" VerticalAlignment="Top" Fill="DimGray" Opacity="0.5"/>
         <Canvas>
-            <Rectangle Name="rectSelectRegion" Stroke="DodgerBlue" Fill="#801E90FF" StrokeThickness="1" Width="0" Height="0" />
+            <Canvas.RenderTransform>
+                <ScaleTransform ScaleX="{Binding ScaleFactor}" ScaleY="{Binding ScaleFactor}"/>
+            </Canvas.RenderTransform>
+            <Rectangle Name="rectSelectRegion" Stroke="DodgerBlue" StrokeThickness="1" Width="0" Height="0"/>
         </Canvas>
 
-        <Border
-            Name="borderAppName"
-            Visibility="{Binding ElementName=glowBorder, Path=Visibility}"
-            Height="{x:Static SystemParameters.CaptionHeight}"
-            IsHitTestVisible="False"
-            HorizontalAlignment="Left"
-            VerticalAlignment="Top"
-            Margin="1,0,0,0"
-            Padding="0,1,0,0"
-            >
-            <TextBlock Name="textblockAppTitle" Text="WPF WinMirror" IsHitTestVisible="False" Padding="8,0" HorizontalAlignment="Left"
-                       FontFamily="Segoe UI" FontSize="13"
+        <Grid Margin="{x:Static SystemParameters.WindowResizeBorderThickness}" Visibility="{Binding ElementName=glowBorder, Path=Visibility}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Background="DimGray">
+                <local:DropDownMenuButton x:Name="buttonBurger" Style="{DynamicResource CaptionButtonStyleKey}">
+                    <Grid IsHitTestVisible="False">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="4"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Line Grid.Row="0" Stroke="Gainsboro" SnapsToDevicePixels="True" StrokeThickness="2" X1="0" Y1="0" X2="16" Y2="0"/>
+                        <Line Grid.Row="2" Stroke="Gainsboro" SnapsToDevicePixels="True" StrokeThickness="2" X1="0" Y1="0" X2="16" Y2="0"/>
+                        <Line Grid.Row="4" Stroke="Gainsboro" SnapsToDevicePixels="True" StrokeThickness="2" X1="0" Y1="0" X2="16" Y2="0"/>
+                    </Grid>
+                </local:DropDownMenuButton>
+            </Border>
+            <Border Grid.Column="1" IsHitTestVisible="False" HorizontalAlignment="Left">
+                <Label Content="WPF WinMirror"
+                       Padding="12,8,12,8"
+                       FontFamily="Segoe UI" FontSize="16"
                        Foreground="Gainsboro" Background="DimGray" />
-        </Border>
+            </Border>
+            <Border Grid.Column="2" IsHitTestVisible="False" HorizontalAlignment="Left" Visibility="{Binding TransparentModeHintVisibility}">
+                <Label Content="{x:Static props:Resources.TransparentMode}"
+                       VerticalContentAlignment="Center"
+                       FontFamily="Segoe UI" FontSize="12"
+                       Foreground="Gainsboro" Background="DimGray" />
+            </Border>
 
-        <Border
-            Name="borderSystemCommands"
-            Visibility="{Binding ElementName=glowBorder, Path=Visibility}"
-            Height="{x:Static SystemParameters.CaptionHeight}"
-            HorizontalAlignment="Right"
-            VerticalAlignment="Top"
-            Margin="0,0,1,0"
-            Padding="0,1,0,0"
-            >
-            <StackPanel Orientation="Horizontal" Background="DimGray"
-                    KeyboardNavigation.TabNavigation="None">
-                <Button Content="0" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonMinimize"
+            <Border Grid.Column="3" HorizontalAlignment="Right">
+                <StackPanel Orientation="Horizontal" Background="DimGray" KeyboardNavigation.TabNavigation="None">
+                    <Button Content="0" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonMinimize"
                     ToolTip="{x:Static props:Resources.buttonMinimize_ToolTip}" Click="buttonMinimize_Click"/>
-                <Button Content="1" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonMaximize"
+                    <Button Content="1" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonMaximize"
                     ToolTip="{x:Static props:Resources.buttonMaximize_ToolTip}" Click="buttonMaximize_Click" Visibility="Visible"/>
-                <Button Content="2" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonRestore"
+                    <Button Content="2" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonRestore"
                     ToolTip="{x:Static props:Resources.buttonRestore_ToolTip}" Click="buttonRestore_Click" Visibility="Collapsed"/>
-                <Button Content="r" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonClose"
+                    <Button Content="r" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonClose"
                     ToolTip="{x:Static props:Resources.buttonClose_ToolTip}" Command="ApplicationCommands.Close"/>
-            </StackPanel>
-        </Border>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

@@ -16,6 +16,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
+// "On Top Replica" に近い仕様とする。
 // 当初は DWM サムネイル API を使って、別アプリケーションのサムネイル画像を取得しようと考えていたが、
 // DwmRegisterThumbnail(), DwmUpdateThumbnailProperties(), DWM_THUMBNAIL_PROPERTIES を見る限り、
 // 描画元と描画先、およびクリッピング範囲の指定ができるだけで、ブレンド モードの制御や拡大縮小以外のアフィン変換の指定はできなさそう。
@@ -52,13 +53,16 @@ namespace WpfWinMirror
 
 		private static readonly Brush CheckedMenuItemIconBorderBackBrush = new SolidColorBrush(Color.FromRgb(0xC4, 0xE1, 0xFF));
 		private static readonly Brush CheckedMenuItemIconBorderStrokeBrush = Brushes.DodgerBlue;
+		//private static readonly Brush DefaultGrayBackBrush = new SolidColorBrush(Color.FromArgb(0x80, 0x20, 0x20, 0x20));
+		private static readonly Brush ZeroBrush = new SolidColorBrush(Color.FromArgb(0, 0, 0, 0));
+		private static readonly Brush SelectRegionFillBrush = new SolidColorBrush(Color.FromArgb(0x80, 0x1E, 0x90, 0xFF));
+
+		readonly Brush _latticePatternBrush;
 
 		CustomEffects.GrayscaleEffect grayscaleEffect;
 		CustomEffects.NPInvertEffect npInvertEffect;
 		CustomEffects.BrightnessToOpacityEffect brightnessToOpacityEffect;
 		CustomEffects.DarknessToOpacityEffect darknessToOpacityEffect;
-
-		Brush originalBackground;
 
 		IntPtr currentWinHandle = IntPtr.Zero;
 
@@ -109,7 +113,9 @@ namespace WpfWinMirror
 			this.brightnessToOpacityEffect = new CustomEffects.BrightnessToOpacityEffect();
 			this.darknessToOpacityEffect = new CustomEffects.DarknessToOpacityEffect();
 
-			this.originalBackground = this.mainRootGrid.Background;
+			this._latticePatternBrush = this.gridForBack.Background;
+			this.ContextMenu = null;
+			this.buttonBurger.DropDownContextMenu = this.mainContextMenu;
 
 			// 起動直後に1回だけ設定するので、プロパティの変更に追従するわけではない。
 			this.customWinProc.MinWindowWidth = Double.IsNaN(this.MinWidth) ? 0 : (int)this.MinWidth;
@@ -298,6 +304,13 @@ namespace WpfWinMirror
 			}
 
 			this.UpdateMenuCheckedState();
+
+			this.buttonBurger.IsEnabled = false;
+		}
+
+		private void mainContextMenu_Closed(object sender, RoutedEventArgs e)
+		{
+			this.buttonBurger.IsEnabled = true;
 		}
 
 		private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -330,20 +343,38 @@ namespace WpfWinMirror
 			}
 		}
 
-		private void UpdateTextBoxBindingSourceOnEnterKeyDown(object sender, KeyEventArgs e)
+		private void UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown(object sender, KeyEventArgs e)
 		{
-			// もし再利用したい場合は、個別に KeyDown イベント ハンドラーをバインディングする方法でもよいし、ビヘイビアを書く方法もある。
-			if (e.Key == Key.Enter)
+			Func<BindingExpression> getExp = () =>
 			{
 				var textBox = e.OriginalSource as TextBox;
 				if (textBox != null)
 				{
-					var be = textBox.GetBindingExpression(TextBox.TextProperty);
-					if (be != null)
-					{
-						be.UpdateSource();
-					}
+					return textBox.GetBindingExpression(TextBox.TextProperty);
 				}
+				return null;
+			};
+
+			// もし再利用したい場合は、個別に KeyDown イベント ハンドラーをバインディングする方法でもよいし、ビヘイビアを書く方法もある。
+			if (e.Key == Key.Enter)
+			{
+				// 入力を確定。
+				var be = getExp();
+				if (be != null)
+				{
+					be.UpdateSource();
+				}
+				e.Handled = true;
+			}
+			else if (e.Key == Key.Escape)
+			{
+				// 入力をキャンセル。
+				var be = getExp();
+				if (be != null)
+				{
+					be.UpdateTarget();
+				}
+				e.Handled = true;
 			}
 		}
 
@@ -368,16 +399,15 @@ namespace WpfWinMirror
 				this.mainImage.Source = wicBitmap;
 				this.mainImage.Width = wicBitmap.PixelWidth;
 				this.mainImage.Height = wicBitmap.PixelHeight;
-				this.textblockNoImage.Visibility = System.Windows.Visibility.Collapsed;
 				this.currentWinHandle = hwnd;
 			}
 			else
 			{
 				this.mainImage.Width = Double.NaN;
 				this.mainImage.Height = Double.NaN;
-				this.textblockNoImage.Visibility = System.Windows.Visibility.Visible;
 				this.currentWinHandle = IntPtr.Zero;
 			}
+			this.vaporSettingsInfo.IsMainImageCaptured = isCaptureSuccess;
 		}
 
 		private void UpdateImageTransform()
@@ -424,6 +454,8 @@ namespace WpfWinMirror
 					this.mainImage.RenderTransform = Transform.Identity;
 				}
 			}
+			this.overlayImage.RenderTransform = new ScaleTransform(
+				scaleX, scaleY, this.overlayImage.Width * 0.5, this.overlayImage.Height * 0.5);
 		}
 
 		void UpdateMenuCheckedState()
@@ -446,16 +478,21 @@ namespace WpfWinMirror
 			//this.menuItemHorizontalReverse.IsChecked = f_isHorizontalReversed;
 			//this.menuItemVerticalReverse.IsChecked = f_isVerticalReversed;
 			//this.menuItemTransparentMode.IsChecked = this.vaporSettingsInfo.IsTransparentMode;
-			UpdateMenuItemIconImageBorder(this.menuItemEffectNone, (this.mainImage.Effect == null));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectGrayscale, (this.mainImage.Effect == this.grayscaleEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectNPInvert, (this.mainImage.Effect == this.npInvertEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectDarknessToOpacity, (this.mainImage.Effect == this.darknessToOpacityEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectBrightnessToOpacity, (this.mainImage.Effect == this.brightnessToOpacityEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectNone, (this.gridForImage.Effect == null));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectGrayscale, (this.gridForImage.Effect == this.grayscaleEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectNPInvert, (this.gridForImage.Effect == this.npInvertEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectDarknessToOpacity, (this.gridForImage.Effect == this.darknessToOpacityEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectBrightnessToOpacity, (this.gridForImage.Effect == this.brightnessToOpacityEffect));
 			UpdateMenuItemIconImageBorder(this.menuItemFrameRateStop, (this.imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.ForStop));
 			UpdateMenuItemIconImageBorder(this.menuItemFrameRate10fps, (this.imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.For10fps));
 			UpdateMenuItemIconImageBorder(this.menuItemFrameRate20fps, (this.imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.For20fps));
 			UpdateMenuItemIconImageBorder(this.menuItemHorizontalReverse, this.currentSettingsInfo.IsHorizontalReversed);
 			UpdateMenuItemIconImageBorder(this.menuItemVerticalReverse, this.currentSettingsInfo.IsVerticalReversed);
+			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternNone, (this.gridForBack.Background == ZeroBrush));
+			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternBlack, (this.gridForBack.Background == Brushes.Black));
+			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternGray, (this.gridForBack.Background == Brushes.Gray));
+			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternWhite, (this.gridForBack.Background == Brushes.White));
+			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternLattice, (this.gridForBack.Background == this._latticePatternBrush));
 		}
 
 		static void UpdateMenuItemIconImageBorder(MenuItem item, bool isChecked)
@@ -501,60 +538,50 @@ namespace WpfWinMirror
 
 			this.vaporSettingsInfo.IsTransparentMode = !this.vaporSettingsInfo.IsTransparentMode;
 
-			this.UpdateWindowTransparent();
+			this.UpdateWindowTransparentStyle();
 		}
 
-		void UpdateWindowTransparent()
+		void UpdateWindowTransparentStyle()
 		{
 			// WS_EX_TRANSPARENT をセットすることで、Window 全体のヒットテストを完全に無効化できる。
-			// 完全にヒットテストを切ってしまうとユーザーが混乱するおそれがあるので、描画領域だけのヒットテストを切りたいが、
+			// 完全にヒットテストを切ってしまうとユーザーが混乱するおそれがあるので、本当は描画領域のヒットテストだけを切りたいが、
 			// 不透明画像を Window に描画した時点でヒットテストが有効になってしまうらしい。
 			MyMiscHelpers.MyWin32InteropHelper.SetWindowStyleExTransparent(this.GetWindowHandle(), this.vaporSettingsInfo.IsTransparentMode);
-			// Grid 背景を null にして透過する。
-			// HACK: 不透明の白背景、半透明の黒背景、および完全透明（null）の中からメニューで選べるようにする？
-			this.mainRootGrid.Background = this.vaporSettingsInfo.IsTransparentMode ? null : this.originalBackground;
 #if false
 			// Image が完全不透明だと混乱しやすくなりそうなので、わずかに透過する。
 			this.mainImage.Opacity = this.vaporSettingsInfo.IsTransparentMode ? 0.9 : 1.0;
 #endif
-
-			string strAppTitle = AppTitle;
-			if (this.vaporSettingsInfo.IsTransparentMode)
-			{
-				strAppTitle += " " + ThisAppResources.TransparentMode;
-			}
-			this.textblockAppTitle.Text = strAppTitle;
 
 			//this.UpdateMenuCheckedState();
 		}
 
 		private void EffectNoneCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.mainImage.Effect = null;
+			this.gridForImage.Effect = null;
 			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectGrayscaleCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.mainImage.Effect = this.grayscaleEffect;
+			this.gridForImage.Effect = this.grayscaleEffect;
 			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectNPInvertCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.mainImage.Effect = this.npInvertEffect;
+			this.gridForImage.Effect = this.npInvertEffect;
 			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectDarknessToOpacityCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.mainImage.Effect = this.darknessToOpacityEffect;
+			this.gridForImage.Effect = this.darknessToOpacityEffect;
 			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectBrightnessToOpacityCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.mainImage.Effect = this.brightnessToOpacityEffect;
+			this.gridForImage.Effect = this.brightnessToOpacityEffect;
 			this.UpdateMenuCheckedState();
 		}
 
@@ -590,7 +617,8 @@ namespace WpfWinMirror
 
 		private void OpenSettingsIncludeDirCommand_CanExecute(object sender, CanExecuteRoutedEventArgs e)
 		{
-			// これはメニューを表示したタイミングでの判定なので、実際にコマンドを実行するときにもチェックする必要がある。
+			// 初回起動時は設定ファイルが存在しないので、メニューコマンドは無効になる。
+			// なお、これはメニューを表示したタイミングでの判定なので、実際にコマンドを実行するときにも事前チェックする必要がある。
 			var config = GetUserConfig();
 			if (System.IO.File.Exists(config.FilePath))
 			{
@@ -608,18 +636,24 @@ namespace WpfWinMirror
 		private void menuItemReset_Click(object sender, RoutedEventArgs e)
 		{
 			this.vaporSettingsInfo.Reset();
-			this.UpdateWindowTransparent();
+			this.UpdateWindowTransparentStyle();
 			this.currentSettingsInfo.Reset();
 
 			this.rectSelectRegion.Width = 0;
 			this.rectSelectRegion.Height = 0;
 
-			this.mainImage.Effect = null;
+			this.gridForImage.Effect = null;
+
+			this.gridForBack.Background = this._latticePatternBrush;
 
 			this.UpdateImageTransform();
 
 			// ターゲット ウィンドウのリセット。
 			this.BindWindowCaptureBitmap(IntPtr.Zero);
+
+			this.overlayImage.Source = null;
+			this.overlayImage.Width = Double.NaN;
+			this.overlayImage.Height = Double.NaN;
 
 			// アプリケーション ウィンドウのリセット。
 			this.Left = this.defaultWindowBounds.Left;
@@ -636,6 +670,7 @@ namespace WpfWinMirror
 			this.rectSelectRegion.Width = 0;
 			this.rectSelectRegion.Height = 0;
 			//this.rectSelectRegion.Visibility = System.Windows.Visibility.Visible;
+			this.rectSelectRegion.Fill = SelectRegionFillBrush;
 			this.isDragging = true;
 		}
 
@@ -644,7 +679,9 @@ namespace WpfWinMirror
 			this.ReleaseMouseCapture();
 			//this.rectSelectRegion.Visibility = System.Windows.Visibility.Collapsed;
 			// 等倍表示でない場合、実際のクリッピング矩形はスケーリングしてやる必要がある。
+			// 内部計算は変更する必要はなく、RenderTransform を使えばよい。
 			this.isDragging = false;
+			this.rectSelectRegion.Fill = null;
 			var newRect = this.GetVisualSelectRegionRectPosition();
 			if (newRect.Width > 0 && newRect.Height > 0)
 			{
@@ -880,6 +917,7 @@ namespace WpfWinMirror
 		private void menuItemSaveImageAs_Click(object sender, RoutedEventArgs e)
 		{
 			// モーダル ダイアログを表示している間もメッセージ ループは回っているため、キャプチャ画像の更新は行なわれる。
+			// もしファイル アクセスにサブスレッドを使って非同期処理する場合は注意。
 			// UNDONE: ユーザーが任意のタイミングでフリーズした画像を保存したければ、
 			// タイマーを一時停止したり画像を複製してキャッシュしておいたりする機能を追加する必要がある。
 
@@ -890,7 +928,7 @@ namespace WpfWinMirror
 				var sfd = new Microsoft.Win32.SaveFileDialog();
 				sfd.FileName = "WpfWinMirrorSS.png";
 				sfd.DefaultExt = ".png";
-				sfd.Filter = "PNG Image Files|*.png";
+				sfd.Filter = "PNG Files|*.png";
 
 				var result = sfd.ShowDialog();
 				if (result == true)
@@ -902,6 +940,41 @@ namespace WpfWinMirror
 			{
 				System.Diagnostics.Debug.WriteLine(err.Message);
 				MessageBox.Show(ThisAppResources.ErrMsgFailedToSaveImage, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+
+		private void menuItemLoadImage_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				var sfd = new Microsoft.Win32.OpenFileDialog();
+				//sfd.FileName = "*.png";
+				sfd.Filter = "All Image Files|*.png;*.gif;*.bmp;*.dib;*.jpg;*.jpeg;*.tif;*.tiff|"
+					+ "PNG Files|*.png|"
+					+ "GIF Files|*.gif|"
+					+ "BMP Files|*.bmp;*.dib|"
+					+ "JPEG Files|*.jpg;*.jpeg|"
+					+ "TIFF Files|*.tif;*.tiff|"
+					+ "All Files|*.*";
+
+				var result = sfd.ShowDialog();
+				if (result == true)
+				{
+					// HACK: オーバーレイ画像の読み込み。キャプチャ画像とは別に管理する。
+					var bmp = MyWpfHelpers.MyWpfImageHelper.CreateBitmapFromSharableFileStream(sfd.FileName, true, BitmapCreateOptions.None, BitmapCacheOption.Default);
+					if (bmp != null)
+					{
+						this.overlayImage.Source = bmp;
+						this.overlayImage.Width = bmp.PixelWidth;
+						this.overlayImage.Height = bmp.PixelHeight;
+						this.vaporSettingsInfo.IsOverlayImageLoaded = true;
+					}
+				}
+			}
+			catch (Exception err)
+			{
+				System.Diagnostics.Debug.WriteLine(err.Message);
+				MessageBox.Show(ThisAppResources.ErrMsgFailedToLoadImage, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -978,11 +1051,43 @@ namespace WpfWinMirror
 		{
 			this.ResetImageUpdateTimer(MyTimerIntervalMillisec.For20fps);
 		}
+
+		private void menuItemBackgroundPatternNone_Click(object sender, RoutedEventArgs e)
+		{
+			// Grid 背景を null にして透過する。
+			// HACK: 不透明の白背景、半透明の黒背景、および完全透明（null）の中からメニューで選べるようにする？
+			// Photoshop のように、背景は格子模様にする方法もある。DrawingBrush の Tile モードを使えばよい。
+			// アルファチャンネルがゼロの完全透明色にしてしまうと、ヒットテストが一切発生しなくなる。
+			// 最低限、アルファを1にすればヒットテストが発生するようになるが、若干ブレンド結果に影響を及ぼすことになり、気持ち悪い。
+			this.gridForBack.Background = ZeroBrush;
+		}
+
+		private void menuItemBackgroundPatternBlack_Click(object sender, RoutedEventArgs e)
+		{
+			this.gridForBack.Background = Brushes.Black;
+		}
+
+		private void menuItemBackgroundPatternGray_Click(object sender, RoutedEventArgs e)
+		{
+			this.gridForBack.Background = Brushes.Gray;
+		}
+
+		private void menuItemBackgroundPatternWhite_Click(object sender, RoutedEventArgs e)
+		{
+			this.gridForBack.Background = Brushes.White;
+		}
+
+		private void menuItemBackgroundPatternLattice_Click(object sender, RoutedEventArgs e)
+		{
+			this.gridForBack.Background = this._latticePatternBrush;
+		}
 	}
 
 	// HACK: DelegateCommand を使って書き直す。
 	// TODO: 最小化されているウィンドウはキャプチャできない旨を注意点として記載。
 	// ターゲットが最小化されている、ということを GUI に表示できるとよいかも。
+	// しかし、最小化されたときの通知をどうするのか、という問題は残る。
+	// 最小化されているかどうかは定期的に（明示的に）調べる必要がある。
 
 	// MenuItem.Command にバインドできるクラス。
 	internal class WindowInfo : ICommand
@@ -1184,29 +1289,160 @@ namespace WpfWinMirror
 	/// </summary>
 	internal class NonserializableSettingsInfo : MyWpfHelpers.MyNotifyPropertyChangedBase
 	{
-		bool isTransparentMode = false;
-		double imageOpacity = 1;
+		public double ImageOpacityMin { get { return 0.1; } }
+		public double ImageOpacityMax { get { return 1; } }
+		public double ScaleFactorMin { get { return 0.1; } }
+		public double ScaleFactorMax { get { return 4; } }
+
+		bool _isTransparentMode = false;
+		double _imageOpacity = 1;
+		double _scaleFactor = 1;
+		bool _isMainImageCaptured = false;
+		bool _isOverlayImageLoaded = false;
 
 		public NonserializableSettingsInfo()
 		{
+			this.IncreaseImageOpacityCommand.ExecuteHandler += (_) => { this.ImageOpacity += 0.01; };
+			this.DecreaseImageOpacityCommand.ExecuteHandler += (_) => { this.ImageOpacity -= 0.01; };
+			this.IncreaseScaleFactorCommand.ExecuteHandler += (_) => { this.ScaleFactor += 0.01; };
+			this.DecreaseScaleFactorCommand.ExecuteHandler += (_) => { this.ScaleFactor -= 0.01; };
 		}
 
 		public bool IsTransparentMode
 		{
-			get { return this.isTransparentMode; }
-			set { base.SetSingleProperty(ref this.isTransparentMode, value); }
+			get { return this._isTransparentMode; }
+			set
+			{
+				if (base.SetSingleProperty(ref this._isTransparentMode, value))
+				{
+					base.NotifyPropertyChanged(nameof(this.TransparentModeHintVisibility));
+				}
+			}
 		}
 
 		public double ImageOpacity
 		{
-			get { return this.imageOpacity; }
-			set { base.SetSingleProperty(ref this.imageOpacity, value); }
+			get { return this._imageOpacity; }
+			set { base.SetSingleProperty(ref this._imageOpacity, MyMiscHelpers.MyGenericsHelper.Clamp(value, ImageOpacityMin, ImageOpacityMax)); }
+		}
+
+		public double ScaleFactor
+		{
+			get { return this._scaleFactor; }
+			set { base.SetSingleProperty(ref this._scaleFactor, MyMiscHelpers.MyGenericsHelper.Clamp(value, ScaleFactorMin, ScaleFactorMax)); }
+		}
+
+		public bool IsMainImageCaptured
+		{
+			get { return this._isMainImageCaptured; }
+			set
+			{
+				if (base.SetSingleProperty(ref this._isMainImageCaptured, value))
+				{
+					base.NotifyPropertyChanged(nameof(this.NoImageHintVisibility));
+				}
+			}
+		}
+
+		public bool IsOverlayImageLoaded
+		{
+			get { return this._isOverlayImageLoaded; }
+			set
+			{
+				if (base.SetSingleProperty(ref this._isOverlayImageLoaded, value))
+				{
+					base.NotifyPropertyChanged(nameof(this.NoImageHintVisibility));
+				}
+			}
+		}
+
+		public Visibility NoImageHintVisibility
+		{
+			get { return (this._isMainImageCaptured || this._isOverlayImageLoaded) ? Visibility.Collapsed : Visibility.Visible; }
+		}
+
+		public Visibility TransparentModeHintVisibility
+		{
+			get { return (this._isTransparentMode) ? Visibility.Visible : Visibility.Collapsed; }
 		}
 
 		public void Reset()
 		{
 			this.IsTransparentMode = false;
 			this.ImageOpacity = 1;
+			this.ScaleFactor = 1;
+			this.IsMainImageCaptured = false;
+			this.IsOverlayImageLoaded = false;
 		}
+
+		public MyWpfHelpers.DelegateCommand IncreaseImageOpacityCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
+		public MyWpfHelpers.DelegateCommand DecreaseImageOpacityCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
+		public MyWpfHelpers.DelegateCommand IncreaseScaleFactorCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
+		public MyWpfHelpers.DelegateCommand DecreaseScaleFactorCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
+	}
+
+	// http://akabeko.me/blog/2009/10/wpf-%E3%81%A7-dropdown-%E3%83%A1%E3%83%8B%E3%83%A5%E3%83%BC%E3%83%9C%E3%82%BF%E3%83%B3/
+
+	/// <summary>
+	/// ドロップ ダウン メニューを表示するためのボタン コントロール クラスです。
+	/// </summary>
+	public sealed class DropDownMenuButton
+		: Button
+		//: System.Windows.Controls.Primitives.ToggleButton
+	{
+		/// <summary>
+		/// インスタンスを初期化します。
+		/// </summary>
+		public DropDownMenuButton()
+		{
+			//var binding = new Binding("DropDownContextMenu.IsOpen") { Source = this, Mode = BindingMode.TwoWay };
+			//this.SetBinding(DropDownMenuButton.IsCheckedProperty, binding);
+		}
+
+		// FrameworkElement.ContextMenu との衝突を避けるため、別名でプロパティを定義。
+		// 右クリックでは表示しない。
+
+		/// <summary>
+		/// ドロップ ダウンとして表示するコンテキスト メニューを取得または設定します。
+		/// </summary>
+		public ContextMenu DropDownContextMenu
+		{
+			get
+			{
+				return this.GetValue(DropDownContextMenuProperty) as ContextMenu;
+			}
+			set
+			{
+				this.SetValue(DropDownContextMenuProperty, value);
+			}
+		}
+
+		/// <summary>
+		/// コントロールがクリックされた時のイベントです。
+		/// </summary>
+		protected override void OnClick()
+		{
+			// HACK: 常に IsOpen == False, Visibility == Visible になる。つまり、ボタンのクリックで IsOpen を True から False にトグルすることはできない。
+			// メニューを非表示にしようとして、ボタンが配置されている領域をクリックすると、そのタイミングでメニューがクローズされ、
+			// このイベントハンドラーに入ったタイミングではすでに IsOpen が False になっている模様。
+			// 範囲外クリックや Esc キーなどでコンテキスト メニューは閉じることができるが、FireFox などのように、バーガーメニューを開いている状態で
+			// バーガーボタン（の領域）をそのままクリックして閉じることもできたほうが便利。
+			// バインディングによる制御はあきらめて、ContextMenu の Loaded/Closed イベントで、ボタンの IsEnabled を制御するとよさげ。
+			System.Diagnostics.Debug.WriteLine("IsOpen = " + this.DropDownContextMenu.IsOpen);
+			System.Diagnostics.Debug.WriteLine("Visibility = " + this.DropDownContextMenu.Visibility);
+
+			//base.OnClick();
+
+			if (this.DropDownContextMenu == null) { return; }
+
+			this.DropDownContextMenu.PlacementTarget = this;
+			this.DropDownContextMenu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+			this.DropDownContextMenu.IsOpen = true;
+		}
+
+		/// <summary>
+		/// ドロップ ダウンとして表示するメニューを表す依存プロパティです。
+		/// </summary>
+		public static readonly DependencyProperty DropDownContextMenuProperty = DependencyProperty.Register("DropDownContextMenu", typeof(ContextMenu), typeof(DropDownMenuButton), new UIPropertyMetadata(null));
 	}
 }

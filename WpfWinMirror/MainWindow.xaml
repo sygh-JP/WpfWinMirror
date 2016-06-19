@@ -30,15 +30,16 @@
     <!-- 透明・半透明の背景にテキストを描画するとき、ClearType は無効になりグレースケール アンチエイリアスになってしまうので注意。 -->
     <Window.Resources>
         <!-- メニューのチェック表示に RadioButton コントロールを使うとコレじゃナイ感が漂うので NG。 -->
+        <!-- Margin 値の設定には注意。メニュー行高さの大きい Windows 7 の Aero では問題なくても、メニュー行高さの小さい Windows 8.1 の Aero2 ではうまく表示できないことがある。 -->
         <Style x:Key="MenuItemIconRadioEllipseStyle" TargetType="Ellipse">
             <Setter Property="Width" Value="8"/>
             <Setter Property="Height" Value="8"/>
-            <Setter Property="Margin" Value="4"/>
+            <Setter Property="Margin" Value="0"/>
             <Setter Property="Fill" Value="Black"/>
             <Setter Property="IsHitTestVisible" Value="False"/>
         </Style>
         <Style x:Key="MenuItemIconBorderStyle" TargetType="Border">
-            <Setter Property="Margin" Value="2"/>
+            <Setter Property="Margin" Value="0"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
         <DrawingBrush x:Key="LatticePatternBrushKey"

@@ -4,7 +4,7 @@ WPF WinMirror application by sygh.
 WinMirror captures a window image of any other visible applications periodically.
 It can show the capture result with one of some shader effects such as "Grayscale" or "Negative (Invert)".
 Also it is possible to overlay the WinMirror's window without preventing you from working on any other applications, by disabling hit test in "Transparent mode".
-Additionally it is possible to select and overlay an existing image.
+Additionally it is possible to select and overlay an existing image file.
 
 WinMirrorは他の可視アプリケーションのウィンドウ画像を定期的にキャプチャします。
 キャプチャ結果に[グレースケール]や[ネガポジ反転]といったシェーダー効果を付加して表示することができます。

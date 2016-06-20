@@ -499,7 +499,8 @@ namespace WpfWinMirror
 			// WinForms ToolStripMenuItem のアイコン矩形標準カラーは #C4E1FF + #3399FF、チェックマークの色は #040204 になっている。
 			// 実際は半透明でコントロール背景色に左右されるのかもしれないが……
 
-			var border = item.Icon as Border;
+			var grid = item.Icon as Grid;
+			var border = grid?.Children.OfType<Border>().FirstOrDefault();
 			if (border == null)
 			{
 				item.IsChecked = isChecked;

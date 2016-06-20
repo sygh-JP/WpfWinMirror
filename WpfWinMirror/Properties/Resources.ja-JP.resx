@@ -214,21 +214,21 @@
     <value>画像ファイルの読み込みに失敗しました。</value>
   </data>
   <data name="menuItemBackgroundPatternBlack_Header" xml:space="preserve">
-    <value>黒</value>
+    <value>黒(_B)</value>
   </data>
   <data name="menuItemBackgroundPatternGray_Header" xml:space="preserve">
-    <value>グレー</value>
+    <value>グレー(_G)</value>
   </data>
   <data name="menuItemBackgroundPatternLattice_Header" xml:space="preserve">
-    <value>格子</value>
+    <value>格子(_L)</value>
   </data>
   <data name="menuItemBackgroundPatternNone_Header" xml:space="preserve">
-    <value>なし</value>
+    <value>なし(_N)</value>
   </data>
   <data name="menuItemBackgroundPatternRoot_Header" xml:space="preserve">
     <value>背景パターン</value>
   </data>
   <data name="menuItemBackgroundPatternWhite_Header" xml:space="preserve">
-    <value>白</value>
+    <value>白(_W)</value>
   </data>
 </root>

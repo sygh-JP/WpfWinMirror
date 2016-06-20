@@ -142,7 +142,7 @@ namespace WpfWinMirror.Properties {
         }
         
         /// <summary>
-        ///   Black に類似しているローカライズされた文字列を検索します。
+        ///   _Black に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string menuItemBackgroundPatternBlack_Header {
             get {
@@ -151,7 +151,7 @@ namespace WpfWinMirror.Properties {
         }
         
         /// <summary>
-        ///   Gray に類似しているローカライズされた文字列を検索します。
+        ///   _Gray に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string menuItemBackgroundPatternGray_Header {
             get {
@@ -160,7 +160,7 @@ namespace WpfWinMirror.Properties {
         }
         
         /// <summary>
-        ///   Lattice に類似しているローカライズされた文字列を検索します。
+        ///   _Lattice に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string menuItemBackgroundPatternLattice_Header {
             get {
@@ -169,7 +169,7 @@ namespace WpfWinMirror.Properties {
         }
         
         /// <summary>
-        ///   None に類似しているローカライズされた文字列を検索します。
+        ///   _None に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string menuItemBackgroundPatternNone_Header {
             get {
@@ -187,7 +187,7 @@ namespace WpfWinMirror.Properties {
         }
         
         /// <summary>
-        ///   White に類似しているローカライズされた文字列を検索します。
+        ///   _White に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string menuItemBackgroundPatternWhite_Header {
             get {

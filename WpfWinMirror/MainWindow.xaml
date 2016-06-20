@@ -29,16 +29,15 @@
     >
     <!-- 透明・半透明の背景にテキストを描画するとき、ClearType は無効になりグレースケール アンチエイリアスになってしまうので注意。 -->
     <Window.Resources>
-        <!-- メニューのチェック表示に RadioButton コントロールを使うとコレじゃナイ感が漂うので NG。 -->
-        <!-- Margin 値の設定には注意。メニュー行高さの大きい Windows 7 の Aero では問題なくても、メニュー行高さの小さい Windows 8.1 の Aero2 ではうまく表示できないことがある。 -->
-        <Style x:Key="MenuItemIconRadioEllipseStyle" TargetType="Ellipse">
-            <Setter Property="Width" Value="8"/>
-            <Setter Property="Height" Value="8"/>
-            <Setter Property="Margin" Value="0"/>
-            <Setter Property="Fill" Value="Black"/>
-            <Setter Property="IsHitTestVisible" Value="False"/>
-        </Style>
-        <Style x:Key="MenuItemIconBorderStyle" TargetType="Border">
+        <!--
+        WPF のメニューでは、Win32/MFC/WinForms のようにラジオボタン風のチェックマークをつけることができない。
+        メニューのラジオチェック表示に RadioButton コントロールをそのまま使うアイディアが Web に転がっているが、極めてコレじゃナイ感が漂うので NG。
+        Border の Margin 値の設定には注意。メニュー行高さの大きい Windows 7 の Aero では問題なくても、
+        メニュー行高さの小さい Windows 8.1 の Aero2 ではうまく表示できないことがある。
+        -->
+        <Style x:Key="MenuItemIconBorderStyleKey" TargetType="Border">
+            <Setter Property="Width" Value="18"/>
+            <Setter Property="Height" Value="18"/>
             <Setter Property="Margin" Value="0"/>
             <Setter Property="BorderThickness" Value="1"/>
         </Style>
@@ -78,6 +77,7 @@
             Executed="TransparentModeCommand_Executed"
             CanExecute="AlwaysAvailableCommand_CanExecute"
             />
+        <!--
         <CommandBinding
             Command="{x:Static local:MainWindow.EffectNoneCommand}"
             Executed="EffectNoneCommand_Executed"
@@ -103,6 +103,7 @@
             Executed="EffectBrightnessToOpacityCommand_Executed"
             CanExecute="AlwaysAvailableCommand_CanExecute"
             />
+        -->
         <CommandBinding
             Command="{x:Static local:MainWindow.HorizontalReverseCommand}"
             Executed="HorizontalReverseCommand_Executed"
@@ -132,13 +133,17 @@
     あえて1ストローク キーをショートカットにする。-->
     <Window.InputBindings>
         <KeyBinding Key="T" Command="{x:Static local:MainWindow.TransparentModeCommand}" />
+        <!--
         <KeyBinding Key="N" Command="{x:Static local:MainWindow.EffectNoneCommand}" />
         <KeyBinding Key="G" Command="{x:Static local:MainWindow.EffectGrayscaleCommand}" />
         <KeyBinding Key="I" Command="{x:Static local:MainWindow.EffectNPInvertCommand}" />
         <KeyBinding Key="D" Command="{x:Static local:MainWindow.EffectDarknessToOpacityCommand}" />
         <KeyBinding Key="B" Command="{x:Static local:MainWindow.EffectBrightnessToOpacityCommand}" />
+        -->
         <KeyBinding Key="H" Command="{x:Static local:MainWindow.HorizontalReverseCommand}" />
         <KeyBinding Key="V" Command="{x:Static local:MainWindow.VerticalReverseCommand}" />
+        <KeyBinding Key="Add" Command="{Binding IncreaseScaleFactorCommand}" />
+        <KeyBinding Key="Subtract" Command="{Binding DecreaseScaleFactorCommand}" />
     </Window.InputBindings>
 
     <Window.ContextMenu>
@@ -152,96 +157,36 @@
             <MenuItem Name="menuItemEffectRoot" Header="{x:Static props:Resources.menuItemEffectRoot_Header}">
                 <!-- エフェクトなし。 -->
                 <MenuItem Name="menuItemEffectNone" Header="{x:Static props:Resources.menuItemEffectNone_Header}"
-                          InputGestureText="N"
-                          Command="{x:Static local:MainWindow.EffectNoneCommand}">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
-                </MenuItem>
+                          Click="menuItemEffectNone_Click"/>
                 <!-- グレースケール。 -->
                 <MenuItem Name="menuItemEffectGrayscale" Header="{x:Static props:Resources.menuItemEffectGrayscale_Header}"
-                          InputGestureText="G"
-                          Command="{x:Static local:MainWindow.EffectGrayscaleCommand}">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
-                </MenuItem>
+                          Click="menuItemEffectGrayscale_Click"/>
                 <!-- ネガポジ反転。 -->
                 <MenuItem Name="menuItemEffectNPInvert" Header="{x:Static props:Resources.menuItemEffectNPInvert_Header}"
-                          InputGestureText="I"
-                          Command="{x:Static local:MainWindow.EffectNPInvertCommand}">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
-                </MenuItem>
+                          Click="menuItemEffectNPInvert_Click"/>
                 <!-- 暗さを不透明度に。 -->
                 <MenuItem Name="menuItemEffectDarknessToOpacity" Header="{x:Static props:Resources.menuItemEffectDarknessToOpacity_Header}"
-                          InputGestureText="D"
-                          Command="{x:Static local:MainWindow.EffectDarknessToOpacityCommand}">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
-                </MenuItem>
+                          Click="menuItemEffectDarknessToOpacity_Click"/>
                 <!-- 明るさを不透明度に。 -->
                 <MenuItem Name="menuItemEffectBrightnessToOpacity" Header="{x:Static props:Resources.menuItemEffectBrightnessToOpacity_Header}"
-                          InputGestureText="B"
-                          Command="{x:Static local:MainWindow.EffectBrightnessToOpacityCommand}">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
-                </MenuItem>
+                          Click="menuItemEffectBrightnessToOpacity_Click"/>
             </MenuItem>
             <Separator/>
             <MenuItem Name="menuItemBackgroundPatternRoot" Header="{x:Static props:Resources.menuItemBackgroundPatternRoot_Header}">
                 <MenuItem Name="menuItemBackgroundPatternNone" Header="{x:Static props:Resources.menuItemBackgroundPatternNone_Header}"
                           Click="menuItemBackgroundPatternNone_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Name="menuItemBackgroundPatternBlack" Header="{x:Static props:Resources.menuItemBackgroundPatternBlack_Header}"
                           Click="menuItemBackgroundPatternBlack_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Name="menuItemBackgroundPatternGray" Header="{x:Static props:Resources.menuItemBackgroundPatternGray_Header}"
                           Click="menuItemBackgroundPatternGray_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Name="menuItemBackgroundPatternWhite" Header="{x:Static props:Resources.menuItemBackgroundPatternWhite_Header}"
                           Click="menuItemBackgroundPatternWhite_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Name="menuItemBackgroundPatternLattice" Header="{x:Static props:Resources.menuItemBackgroundPatternLattice_Header}"
                           Click="menuItemBackgroundPatternLattice_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
             <Separator/>
@@ -249,27 +194,12 @@
             <MenuItem Name="menuItemFrameRateRoot" Header="{x:Static props:Resources.menuItemFrameRateRoot_Header}">
                 <MenuItem Name="menuItemFrameRateStop" Header="{x:Static props:Resources.menuItemFrameRateStop_Header}"
                           Click="menuItemFrameRateStop_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Name="menuItemFrameRate10fps" Header="_10 FPS"
                           Click="menuItemFrameRate10fps_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
                 <MenuItem Name="menuItemFrameRate20fps" Header="_20 FPS"
                           Click="menuItemFrameRate20fps_Click">
-                    <MenuItem.Icon>
-                        <Border Style="{StaticResource MenuItemIconBorderStyle}">
-                            <Ellipse Style="{StaticResource MenuItemIconRadioEllipseStyle}"/>
-                        </Border>
-                    </MenuItem.Icon>
                 </MenuItem>
             </MenuItem>
             <Separator/>
@@ -336,7 +266,7 @@
                       InputGestureText="H"
                       Command="{x:Static local:MainWindow.HorizontalReverseCommand}">
                 <MenuItem.Icon>
-                    <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                    <Border Style="{StaticResource MenuItemIconBorderStyleKey}">
                         <Image Source="./Resources/HorizontalSwap_16p.png" Width="16" Height="16"/>
                     </Border>
                 </MenuItem.Icon>
@@ -345,7 +275,7 @@
                       InputGestureText="V"
                       Command="{x:Static local:MainWindow.VerticalReverseCommand}">
                 <MenuItem.Icon>
-                    <Border Style="{StaticResource MenuItemIconBorderStyle}">
+                    <Border Style="{StaticResource MenuItemIconBorderStyleKey}">
                         <Image Source="./Resources/VerticalSwap_16p.png" Width="16" Height="16"/>
                     </Border>
                 </MenuItem.Icon>
@@ -444,7 +374,7 @@
         非クライアント領域の描画も完全制御している Google Chrome や Visual Studio 2012 のようなアプリをターゲットにしていると混乱しやすい。
         -->
         <Grid Name="gridForBack" Opacity="{Binding Path=ImageOpacity}" Background="{StaticResource LatticePatternBrushKey}">
-            <Grid Name="gridForImage">
+            <Grid Name="gridForImage" RenderOptions.BitmapScalingMode="{Binding ScalingInterpolationMode}" UseLayoutRounding="True">
                 <Grid.RenderTransform>
                     <ScaleTransform ScaleX="{Binding ScaleFactor}" ScaleY="{Binding ScaleFactor}"/>
                 </Grid.RenderTransform>
@@ -460,7 +390,7 @@
                         Height="{Binding ElementName=overlayImage, Path=Height}"
                         HorizontalAlignment="Left" VerticalAlignment="Top"
                         >
-                    <Image Name="overlayImage" UseLayoutRounding="True" IsHitTestVisible="False"/>
+                    <Image Name="overlayImage" UseLayoutRounding="True" IsHitTestVisible="False" Effect="{Binding ElementName=mainImage, Path=Effect}"/>
                 </Canvas>
             </Grid>
         </Grid>

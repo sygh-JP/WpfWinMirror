@@ -1,0 +1,42 @@
+﻿コンテキストメニューを何回か開閉した後、カスタムシェーダーエフェクトを適用する、
+あるいはカスタムシェーダーエフェクトを適用した後、コンテキストメニューを何回か開閉すると、
+アプリケーションがクラッシュする現象が発生した。
+
+型 'System.Runtime.InteropServices.COMException' のハンドルされていない例外が PresentationCore.dll で発生しました
+追加情報:HRESULT からの例外:0x88980406
+
+"winerror.h" によると、例外コード 0x88980406 は
+UCEERR_RENDERTHREADFAILURE
+らしい。
+
+イベントログを調べたところ、下記のような情報が記録されていた。
+
+アプリケーション:WpfWinMirror.exe
+フレームワークのバージョン:v4.0.30319
+説明: ハンドルされない例外のため、プロセスが中止されました。
+例外情報:System.Runtime.InteropServices.COMException
+   場所 System.Windows.Media.Composition.DUCE+Channel.SyncFlush()
+   場所 System.Windows.Media.MediaContext.NotifySyncModeStatus(Int32)
+   場所 System.Windows.Media.MediaContext.NotifyChannelMessage()
+   場所 System.Windows.Media.MediaContextNotificationWindow.MessageFilter(IntPtr, Int32, IntPtr, IntPtr, Boolean ByRef)
+   場所 MS.Win32.HwndWrapper.WndProc(IntPtr, Int32, IntPtr, IntPtr, Boolean ByRef)
+   場所 MS.Win32.HwndSubclass.DispatcherCallbackOperation(System.Object)
+   場所 System.Windows.Threading.ExceptionWrapper.InternalRealCall(System.Delegate, System.Object, Int32)
+   場所 System.Windows.Threading.ExceptionWrapper.TryCatchWhen(System.Object, System.Delegate, System.Object, Int32, System.Delegate)
+   場所 System.Windows.Threading.Dispatcher.LegacyInvokeImpl(System.Windows.Threading.DispatcherPriority, System.TimeSpan, System.Delegate, System.Object, Int32)
+   場所 MS.Win32.HwndSubclass.SubclassWndProc(IntPtr, Int32, IntPtr, IntPtr)
+   場所 MS.Win32.UnsafeNativeMethods.DispatchMessage(System.Windows.Interop.MSG ByRef)
+   場所 System.Windows.Threading.Dispatcher.PushFrameImpl(System.Windows.Threading.DispatcherFrame)
+   場所 System.Windows.Threading.Dispatcher.PushFrame(System.Windows.Threading.DispatcherFrame)
+   場所 System.Windows.Application.RunDispatcher(System.Object)
+   場所 System.Windows.Application.RunInternal(System.Windows.Window)
+   場所 System.Windows.Application.Run(System.Windows.Window)
+   場所 System.Windows.Application.Run()
+   場所 WpfWinMirror.App.Main()
+
+
+WPFアプリケーションがこのエラーに陥る原因はいくつかあるらしい。
+
+https://blogs.msdn.microsoft.com/dsui_team/2013/11/18/wpf-render-thread-failures/
+
+Image要素ではなく、親Canvasの親Gridにエフェクトを適用したことが遠因だった模様。

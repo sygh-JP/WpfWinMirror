@@ -214,21 +214,21 @@
     <value>Failed to load the image file!!</value>
   </data>
   <data name="menuItemBackgroundPatternBlack_Header" xml:space="preserve">
-    <value>Black</value>
+    <value>_Black</value>
   </data>
   <data name="menuItemBackgroundPatternGray_Header" xml:space="preserve">
-    <value>Gray</value>
+    <value>_Gray</value>
   </data>
   <data name="menuItemBackgroundPatternLattice_Header" xml:space="preserve">
-    <value>Lattice</value>
+    <value>_Lattice</value>
   </data>
   <data name="menuItemBackgroundPatternNone_Header" xml:space="preserve">
-    <value>None</value>
+    <value>_None</value>
   </data>
   <data name="menuItemBackgroundPatternRoot_Header" xml:space="preserve">
     <value>Background pattern</value>
   </data>
   <data name="menuItemBackgroundPatternWhite_Header" xml:space="preserve">
-    <value>White</value>
+    <value>_White</value>
   </data>
 </root>

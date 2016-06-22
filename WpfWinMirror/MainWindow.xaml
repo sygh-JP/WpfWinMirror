@@ -379,7 +379,11 @@
         <Grid Name="gridForBack" Opacity="{Binding Path=ImageOpacity}" Background="{StaticResource LatticePatternBrushKey}">
             <Grid Name="gridForImage" RenderOptions.BitmapScalingMode="{Binding ScalingInterpolationMode}" UseLayoutRounding="True">
                 <Grid.RenderTransform>
-                    <ScaleTransform ScaleX="{Binding ScaleFactor}" ScaleY="{Binding ScaleFactor}"/>
+                    <TransformGroup>
+                        <TranslateTransform x:Name="clippingTranslateGridForImage" />
+                        <ScaleTransform x:Name="clippingScaleGridForImage" />
+                        <ScaleTransform ScaleX="{Binding ScaleFactor}" ScaleY="{Binding ScaleFactor}"/>
+                    </TransformGroup>
                 </Grid.RenderTransform>
                 <Canvas Name="canvasMainImage" UseLayoutRounding="True" IsHitTestVisible="False"
                         Width="{Binding ElementName=mainImage, Path=Width}"
@@ -437,10 +441,9 @@
         <!-- アプリがアクティブな状態で完全不透明の矩形がタイトル バー領域に存在すると、クリッピング矩形の作成時に不便なので、
         あえてアプリ名やシステム コマンド パネルとは分ける。なお、半透明矩形にテキストを描画するときは ClearType が効かなくなる。 -->
         <Rectangle Height="{x:Static SystemParameters.CaptionHeight}" IsHitTestVisible="False" VerticalAlignment="Top" Fill="DimGray" Opacity="0.5"/>
+        <!-- 選択矩形は常にスクリーン座標系（厳密に言うと Canvas のクライアント座標系）での表示。 -->
         <Canvas>
-            <Canvas.RenderTransform>
-                <ScaleTransform ScaleX="{Binding ScaleFactor}" ScaleY="{Binding ScaleFactor}"/>
-            </Canvas.RenderTransform>
+            <!-- NOTE: もし矩形データをバインディングする場合、編集後確定データと編集時画面表示用データは分けること。 -->
             <Rectangle Name="rectSelectRegion" Stroke="DodgerBlue" StrokeThickness="1" Width="0" Height="0"/>
         </Canvas>
 

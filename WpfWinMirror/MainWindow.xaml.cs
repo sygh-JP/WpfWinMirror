@@ -59,6 +59,8 @@ namespace WpfWinMirror
 
 		readonly Brush _latticePatternBrush;
 		readonly UIElement _effectTargetElement;
+		readonly UIElement _baseElementForSelectRegionCalc; // UIElement は IInputElement を実装している。
+		readonly RectangleGeometry _geoImageClippingRect = new RectangleGeometry();
 
 		CustomEffects.GrayscaleEffect grayscaleEffect;
 		CustomEffects.NPInvertEffect npInvertEffect;
@@ -117,6 +119,7 @@ namespace WpfWinMirror
 			this._latticePatternBrush = this.gridForBack.Background;
 			this._effectTargetElement = this.mainImage;
 			//this._effectTargetElement = this.gridForImage; // 残念ながら UCEERR_RENDERTHREADFAILURE によるクラッシュの原因となる。
+			this._baseElementForSelectRegionCalc = this;
 
 			this.ContextMenu = null;
 			this.buttonBurger.DropDownContextMenu = this.mainContextMenu;
@@ -146,16 +149,14 @@ namespace WpfWinMirror
 			};
 #endif
 
-			// グロー枠、左上のアプリ名、右上のシステム コマンド パネル、および選択矩形の可視状態はアクティブ状態に連動する。
+			// グロー枠、左上のアプリ名、右上のシステム コマンド パネルの可視状態はアクティブ状態に連動する。
 			// アプリ名とシステム コマンド パネルはバインディングで可視状態を連動させる。
 			Application.Current.Activated += (s, e) =>
 			{
-				this.rectSelectRegion.Visibility = System.Windows.Visibility.Visible;
 				this.glowBorder.Visibility = System.Windows.Visibility.Visible;
 			};
 			Application.Current.Deactivated += (s, e) =>
 			{
-				this.rectSelectRegion.Visibility = System.Windows.Visibility.Collapsed;
 				this.glowBorder.Visibility = System.Windows.Visibility.Collapsed;
 			};
 
@@ -227,8 +228,6 @@ namespace WpfWinMirror
 					this.currentSettingsInfo = this.settingsPresets[index].Clone();
 					this.SetWindowBounds(this.currentSettingsInfo.MainWindowBounds);
 					this.WindowState = this.currentSettingsInfo.IsMainWindowMaximized ? System.Windows.WindowState.Maximized : System.Windows.WindowState.Normal;
-					// ビジュアルの選択矩形の更新。
-					this.SetVisualSelectRegionRectPosition(this.currentSettingsInfo.ClippingRect);
 					this.UpdateImageTransform();
 				};
 			}
@@ -395,7 +394,8 @@ namespace WpfWinMirror
 			var wicBitmap = NativeHelpers.MyWin32InteropHelper.CaptureWindow(hwnd);
 			if (wicBitmap != null)
 #else
-			bool isCaptureSuccess = this.winCaptureBuffer.CaptureWindow(hwnd, this.currentSettingsInfo.ClippingRect);
+			//bool isCaptureSuccess = this.winCaptureBuffer.CaptureWindow(hwnd, this.currentSettingsInfo.ClippingRect);
+			bool isCaptureSuccess = this.winCaptureBuffer.CaptureWindow(hwnd, Int32Rect.Empty); // キャプチャは全画面で行ない、クリッピングは表示する際に行なう。
 			var wicBitmap = this.winCaptureBuffer.CapturedImage;
 			if (isCaptureSuccess)
 #endif
@@ -416,24 +416,38 @@ namespace WpfWinMirror
 
 		private void UpdateImageTransform()
 		{
-			double scaleX = this.currentSettingsInfo.IsHorizontalReversed ? -1 : 1;
-			double scaleY = this.currentSettingsInfo.IsVerticalReversed ? -1 : 1;
+			double reversingScaleX = this.currentSettingsInfo.ReversingScaleX;
+			double reversingScaleY = this.currentSettingsInfo.ReversingScaleY;
+
+			this._geoImageClippingRect.Rect = new Rect(
+				this.currentSettingsInfo.ClippingRect.X,
+				this.currentSettingsInfo.ClippingRect.Y,
+				this.currentSettingsInfo.ClippingRect.Width,
+				this.currentSettingsInfo.ClippingRect.Height);
+
+			// NOTE: パネルの UIElement.Clip プロパティを使ってクリッピングしたときのことも考慮する。
+			// クリッピングなしの場合はキャプチャ画像／ファイル読み込み画像の中心ごとにそれぞれ反転させるべきだが、
+			// クリッピングした場合は Grid のほうを反転させたほうがよいかも。
+
 			if (this.currentSettingsInfo.ClippingRect.HasArea)
 			{
 				// ユーザー定義のクリッピング領域の中心を基点に反転する。
-				// 中心位置の算出は浮動小数ではなく整数で演算して切り捨てるべきか？
-#if false
-				// 切り出し元の相対位置を使う場合。
-				double clipCenterX = f_currentSettingsInfo.ClippingRect.X + f_currentSettingsInfo.ClippingRect.Width * 0.5;
-				double clipCenterY = f_currentSettingsInfo.ClippingRect.Y + f_currentSettingsInfo.ClippingRect.Height * 0.5;
-#else
-				// 切り出した領域を常に左上に配置する場合。
-				double clipCenterX = this.currentSettingsInfo.ClippingRect.Width * 0.5;
-				double clipCenterY = this.currentSettingsInfo.ClippingRect.Height * 0.5;
-#endif
-				this.mainImage.RenderTransform = new ScaleTransform(
-					scaleX, scaleY,
-					clipCenterX, clipCenterY);
+				// 切り出した領域を常に左上に配置する。
+				// HACK: 中心位置の算出は浮動小数ではなく整数で演算して切り捨てるべきか？
+
+				double clippingCenterX = this.currentSettingsInfo.ClippingRect.Width * 0.5;
+				double clippingCenterY = this.currentSettingsInfo.ClippingRect.Height * 0.5;
+
+				this.mainImage.RenderTransform = Transform.Identity;
+				this.overlayImage.RenderTransform = Transform.Identity;
+
+				this.gridForImage.Clip = this._geoImageClippingRect;
+				this.clippingTranslateGridForImage.X = -this.currentSettingsInfo.ClippingRect.X;
+				this.clippingTranslateGridForImage.Y = -this.currentSettingsInfo.ClippingRect.Y;
+				this.clippingScaleGridForImage.ScaleX = reversingScaleX;
+				this.clippingScaleGridForImage.ScaleY = reversingScaleY;
+				this.clippingScaleGridForImage.CenterX = clippingCenterX;
+				this.clippingScaleGridForImage.CenterY = clippingCenterY;
 			}
 			else
 			{
@@ -442,24 +456,36 @@ namespace WpfWinMirror
 				{
 					// ユーザー定義のクリッピング領域が無効の場合、キャプチャ対象ウィンドウのクライアント中心を基点に反転する。
 					// デスクトップ領域の中心ではない。
-#if false
-					double clipCenterX = this.image1.Width * 0.5;
-					double clipCenterY = this.image1.Height * 0.5;
-#else
-					double clipCenterX = targetClientRect.Width * 0.5;
-					double clipCenterY = targetClientRect.Height * 0.5;
-#endif
+					double clippingCenterX = targetClientRect.Width * 0.5;
+					double clippingCenterY = targetClientRect.Height * 0.5;
+
 					this.mainImage.RenderTransform = new ScaleTransform(
-						scaleX, scaleY,
-						clipCenterX, clipCenterY);
+						reversingScaleX, reversingScaleY,
+						clippingCenterX, clippingCenterY);
 				}
 				else
 				{
 					this.mainImage.RenderTransform = Transform.Identity;
 				}
+
+				{
+					// 画像中心を基点に反転する。
+					double clippingCenterX = this.overlayImage.Width * 0.5;
+					double clippingCenterY = this.overlayImage.Height * 0.5;
+
+					this.overlayImage.RenderTransform = new ScaleTransform(
+						reversingScaleX, reversingScaleY,
+						clippingCenterX, clippingCenterY);
+				}
+
+				this.gridForImage.Clip = null;
+				this.clippingTranslateGridForImage.X = 0;
+				this.clippingTranslateGridForImage.Y = 0;
+				this.clippingScaleGridForImage.ScaleX = 1;
+				this.clippingScaleGridForImage.ScaleY = 1;
+				this.clippingScaleGridForImage.CenterX = 0;
+				this.clippingScaleGridForImage.CenterY = 0;
 			}
-			this.overlayImage.RenderTransform = new ScaleTransform(
-				scaleX, scaleY, this.overlayImage.Width * 0.5, this.overlayImage.Height * 0.5);
 		}
 
 		void UpdateMenuCheckedState()
@@ -665,24 +691,37 @@ namespace WpfWinMirror
 
 		private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
 		{
+			// メニューを開いている間（メニューボタンが Disabled になっている間）はマウス操作を一時的に禁止しておかないと、
+			// メニューをマウスクリックで閉じたタイミングでクリッピング矩形がリセットされてしまうことになり、不便。
+			if (!this.buttonBurger.IsEnabled)
+			{
+				return;
+			}
+
 			this.CaptureMouse();
-			this.dragStartPos = e.GetPosition(this.canvasMainImage);
+			this.dragStartPos = e.GetPosition(this._baseElementForSelectRegionCalc);
 			this.rectSelectRegion.Width = 0;
 			this.rectSelectRegion.Height = 0;
-			//this.rectSelectRegion.Visibility = System.Windows.Visibility.Visible;
 			this.rectSelectRegion.Fill = SelectRegionFillBrush;
+			this.rectSelectRegion.Visibility = System.Windows.Visibility.Visible;
 			this.isDragging = true;
 		}
 
 		private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
 		{
+			if (!this.buttonBurger.IsEnabled)
+			{
+				return;
+			}
+
 			this.ReleaseMouseCapture();
-			//this.rectSelectRegion.Visibility = System.Windows.Visibility.Collapsed;
 			// 等倍表示でない場合、実際のクリッピング矩形はスケーリングしてやる必要がある。
 			// 内部計算は変更する必要はなく、RenderTransform を使えばよい。
 			this.isDragging = false;
 			this.rectSelectRegion.Fill = null;
-			var newRect = this.GetVisualSelectRegionRectPosition();
+			this.rectSelectRegion.Visibility = System.Windows.Visibility.Collapsed;
+			//var newRect = this.GetVisualSelectRegionRectPosition();
+			var newRect = this.GetVisualSelectRegionRectPositionInImageCoord();
 			if (newRect.Width > 0 && newRect.Height > 0)
 			{
 				this.currentSettingsInfo.ClippingRect = newRect;
@@ -694,7 +733,22 @@ namespace WpfWinMirror
 			this.UpdateImageTransform();
 		}
 
-		static void ClampPair(double curr, double start, double max, out double pos, out double length)
+		private void Window_MouseMove(object sender, MouseEventArgs e)
+		{
+			if (this.isDragging)
+			{
+				var currentPos = e.GetPosition(this._baseElementForSelectRegionCalc);
+				// 左上から右下にドラッグするパターンだけでなく、右下から左上にドラッグするパターンなども考慮して、Left, Top, Width, Height を決める。
+				double left, top, width, height;
+				ClampPair(currentPos.X, this.dragStartPos.X, System.Windows.SystemParameters.MaximizedPrimaryScreenWidth, out left, out width);
+				ClampPair(currentPos.Y, this.dragStartPos.Y, System.Windows.SystemParameters.MaximizedPrimaryScreenHeight, out top, out height);
+				// ビジュアルの選択矩形の更新。
+				// ドラッグ中はクリッピング領域の矩形データは更新しない（データ バインディングなどで自動的に連動されるようにはしない）。
+				this.SetVisualSelectRegionRectPosition(left, top, width, height);
+			}
+		}
+
+		private static void ClampPair(double curr, double start, double max, out double pos, out double length)
 		{
 			if (curr < start)
 			{
@@ -723,11 +777,7 @@ namespace WpfWinMirror
 			this.rectSelectRegion.Height = height;
 		}
 
-		private void SetVisualSelectRegionRectPosition(Int32Rect rect)
-		{
-			this.SetVisualSelectRegionRectPosition(rect.X, rect.Y, rect.Width, rect.Height);
-		}
-
+		[Obsolete()]
 		private Int32Rect GetVisualSelectRegionRectPosition()
 		{
 			return new Int32Rect(
@@ -737,20 +787,25 @@ namespace WpfWinMirror
 				(int)this.rectSelectRegion.Height);
 		}
 
-		private void Window_MouseMove(object sender, MouseEventArgs e)
+		private Int32Rect GetVisualSelectRegionRectPositionInImageCoord()
 		{
-			if (this.isDragging)
-			{
-				var currentPos = e.GetPosition(this.canvasMainImage);
-				double left, top, width, height;
-				//ClampPair(currentPos.X, f_dragStartPos.X, this.canvasMainImage.ActualWidth, out left, out width);
-				//ClampPair(currentPos.Y, f_dragStartPos.Y, this.canvasMainImage.ActualHeight, out top, out height);
-				ClampPair(currentPos.X, this.dragStartPos.X, System.Windows.SystemParameters.MaximizedPrimaryScreenWidth, out left, out width);
-				ClampPair(currentPos.Y, this.dragStartPos.Y, System.Windows.SystemParameters.MaximizedPrimaryScreenHeight, out top, out height);
-				// ビジュアルの選択矩形の更新。
-				// ドラッグ中はクリッピング領域のデータは更新しない（データ バインディングなどで自動的に連動されるようにはしない）。
-				this.SetVisualSelectRegionRectPosition(left, top, width, height);
-			}
+			// TODO: スクリーン（Canvas）上の相対座標から、画像上の絶対座標に直す。
+			// 拡大・縮小および反転や、クリッピング状態には左右されない。
+			var left = Canvas.GetLeft(this.rectSelectRegion);
+			var top = Canvas.GetTop(this.rectSelectRegion);
+			var right = left + this.rectSelectRegion.Width;
+			var bottom = top + this.rectSelectRegion.Height;
+			// WPF では、特定の要素に対するクライアント座標系での値を直接計算することはできない。
+			// いったんデスクトップに対するスクリーン座標系を経由する必要がある。
+			var screenLT = this.gridAllRoot.PointToScreen(new Point(left, top));
+			var screenRB = this.gridAllRoot.PointToScreen(new Point(right, bottom));
+			var imageBasedLT = this.mainImage.PointFromScreen(screenLT);
+			var imageBasedRB = this.mainImage.PointFromScreen(screenRB);
+			return new Int32Rect(
+				(int)Math.Min(imageBasedLT.X, imageBasedRB.X),
+				(int)Math.Min(imageBasedLT.Y, imageBasedRB.Y),
+				(int)Math.Abs(imageBasedLT.X - imageBasedRB.X),
+				(int)Math.Abs(imageBasedLT.Y - imageBasedRB.Y));
 		}
 
 		private void Window_StateChanged(object sender, EventArgs e)
@@ -763,7 +818,7 @@ namespace WpfWinMirror
 				this.buttonRestore.Visibility = System.Windows.Visibility.Collapsed;
 				this.buttonMaximize.Visibility = System.Windows.Visibility.Visible;
 			}
-			if (this.WindowState == System.Windows.WindowState.Maximized)
+			else if (this.WindowState == System.Windows.WindowState.Maximized)
 			{
 				this.buttonRestore.Visibility = System.Windows.Visibility.Visible;
 				this.buttonMaximize.Visibility = System.Windows.Visibility.Collapsed;
@@ -1187,6 +1242,12 @@ namespace WpfWinMirror
 		public Int32Rect ClippingRect { get; set; }
 		public bool IsMainWindowMaximized { get; set; }
 		public Int32Rect MainWindowBounds { get; set; }
+
+		public double ClippingRectCenterX { get { return this.ClippingRect.X + this.ClippingRect.Width * 0.5; } }
+		public double ClippingRectCenterY { get { return this.ClippingRect.Y + this.ClippingRect.Height * 0.5; } }
+
+		public double ReversingScaleX { get { return this.IsHorizontalReversed ? -1 : 1; } }
+		public double ReversingScaleY { get { return this.IsVerticalReversed ? -1 : 1; } }
 
 		static string CreateElementRegex(string targetName)
 		{

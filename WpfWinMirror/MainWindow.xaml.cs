@@ -62,29 +62,29 @@ namespace WpfWinMirror
 		readonly UIElement _baseElementForSelectRegionCalc; // UIElement は IInputElement を実装している。
 		readonly RectangleGeometry _geoImageClippingRect = new RectangleGeometry();
 
-		CustomEffects.GrayscaleEffect grayscaleEffect;
-		CustomEffects.NPInvertEffect npInvertEffect;
-		CustomEffects.BrightnessToOpacityEffect brightnessToOpacityEffect;
-		CustomEffects.DarknessToOpacityEffect darknessToOpacityEffect;
+		readonly CustomEffects.GrayscaleEffect _grayscaleEffect;
+		readonly CustomEffects.NPInvertEffect _npInvertEffect;
+		readonly CustomEffects.BrightnessToOpacityEffect _brightnessToOpacityEffect;
+		readonly CustomEffects.DarknessToOpacityEffect _darknessToOpacityEffect;
 
 		IntPtr _currentTargetWinHandle = IntPtr.Zero;
 
-		NonserializableSettingsInfo vaporSettingsInfo = new NonserializableSettingsInfo();
-		SerializableSettingsInfo currentSettingsInfo = new SerializableSettingsInfo();
-		List<SerializableSettingsInfo> settingsPresets = new List<SerializableSettingsInfo>();
-		List<MenuItem> savePresetMenuItems = new List<MenuItem>();
-		List<MenuItem> loadPresetMenuItems = new List<MenuItem>();
+		readonly NonserializableSettingsInfo _vaporSettingsInfo = new NonserializableSettingsInfo();
+		readonly SerializableSettingsInfo _currentSettingsInfo = new SerializableSettingsInfo();
+		readonly List<SerializableSettingsInfo> _settingsPresets = new List<SerializableSettingsInfo>();
+		readonly List<MenuItem> _savePresetMenuItems = new List<MenuItem>();
+		readonly List<MenuItem> _loadPresetMenuItems = new List<MenuItem>();
 
 		const int MaxSettingsPresetsCount = 4;
 
-		bool isDragging;
-		Point dragStartPos;
+		bool _isDragging;
+		Point _dragStartPos;
 
-		Rect defaultWindowBounds;
+		Rect _defaultWindowBounds;
 
-		MyMiscHelpers.MyWindowCaptureBuffer winCaptureBuffer;
+		MyMiscHelpers.MyWindowCaptureBuffer _winCaptureBuffer;
 
-		DispatcherTimer dispatcherTimer;
+		DispatcherTimer _dispatcherTimer;
 
 		// ユーザーが PC 能力に合わせてフレームレートを3段階くらいに設定できるようにする。一時停止もメニューに加える。
 		// CPU で書き換えた WriteableBitmap を GPU に転送するのは PCI-e バス帯域が効いてくるが、全体的な負荷はほぼ CPU Bound となる。
@@ -95,9 +95,9 @@ namespace WpfWinMirror
 			ForStop = -1,
 			Default = For20fps,
 		}
-		MyTimerIntervalMillisec imageUpdateTimerIntervalMillisec = MyTimerIntervalMillisec.Default;
+		MyTimerIntervalMillisec _imageUpdateTimerIntervalMillisec = MyTimerIntervalMillisec.Default;
 
-		MyMiscHelpers.MyCustomLayeredWinProcManager customWinProc = new MyMiscHelpers.MyCustomLayeredWinProcManager();
+		MyMiscHelpers.MyCustomLayeredWinProcManager _customWinProc = new MyMiscHelpers.MyCustomLayeredWinProcManager();
 
 		const string AppTitle = "WPF WinMirror";
 
@@ -111,10 +111,10 @@ namespace WpfWinMirror
 		{
 			InitializeComponent();
 
-			this.grayscaleEffect = new CustomEffects.GrayscaleEffect();
-			this.npInvertEffect = new CustomEffects.NPInvertEffect();
-			this.brightnessToOpacityEffect = new CustomEffects.BrightnessToOpacityEffect();
-			this.darknessToOpacityEffect = new CustomEffects.DarknessToOpacityEffect();
+			this._grayscaleEffect = new CustomEffects.GrayscaleEffect();
+			this._npInvertEffect = new CustomEffects.NPInvertEffect();
+			this._brightnessToOpacityEffect = new CustomEffects.BrightnessToOpacityEffect();
+			this._darknessToOpacityEffect = new CustomEffects.DarknessToOpacityEffect();
 
 			this._latticePatternBrush = this.gridForBack.Background;
 			this._effectTargetElement = this.mainImage;
@@ -125,8 +125,8 @@ namespace WpfWinMirror
 			this.buttonBurger.DropDownContextMenu = this.mainContextMenu;
 
 			// 起動直後に1回だけ設定するので、プロパティの変更に追従するわけではない。
-			this.customWinProc.MinWindowWidth = Double.IsNaN(this.MinWidth) ? 0 : (int)this.MinWidth;
-			this.customWinProc.MinWindowHeight = Double.IsNaN(this.MinHeight) ? 0 : (int)this.MinHeight;
+			this._customWinProc.MinWindowWidth = Double.IsNaN(this.MinWidth) ? 0 : (int)this.MinWidth;
+			this._customWinProc.MinWindowHeight = Double.IsNaN(this.MinHeight) ? 0 : (int)this.MinHeight;
 
 			this.UpdateMenuCheckedState();
 
@@ -177,7 +177,7 @@ namespace WpfWinMirror
 				// TODO: ディスプレイ解像度が変更された場合に作り直しが必要。
 				var desktopRect = MyMiscHelpers.MyWin32InteropHelper.GetWindowRect(MyMiscHelpers.MyWin32InteropHelper.GetDesktopWindow());
 				System.Diagnostics.Debug.Assert(!desktopRect.IsEmpty);
-				this.winCaptureBuffer = new MyMiscHelpers.MyWindowCaptureBuffer(desktopRect.Width, desktopRect.Height);
+				this._winCaptureBuffer = new MyMiscHelpers.MyWindowCaptureBuffer(desktopRect.Width, desktopRect.Height);
 			}
 #endif
 
@@ -198,43 +198,49 @@ namespace WpfWinMirror
 #endif
 
 			{
-				this.dispatcherTimer = new DispatcherTimer(DispatcherPriority.Normal);
-				this.dispatcherTimer.Interval = this.CreateImageUpdateTimerInterval();
-				this.dispatcherTimer.Tick += this.dispatcherTimer_Tick;
-				this.dispatcherTimer.Start();
+				this._dispatcherTimer = new DispatcherTimer(DispatcherPriority.Normal);
+				this._dispatcherTimer.Interval = this.CreateImageUpdateTimerInterval();
+				this._dispatcherTimer.Tick += this.dispatcherTimer_Tick;
+				this._dispatcherTimer.Start();
 			}
 
 			for (int i = 0; i < MaxSettingsPresetsCount; ++i)
 			{
 				int index = i; // ループ カウンターをラムダ式でキャプチャする前に、ローカル変数にコピーしておく。
 				var settingsInfo = new SerializableSettingsInfo();
-				this.settingsPresets.Add(settingsInfo);
+				this._settingsPresets.Add(settingsInfo);
 				var saveMenuItem = new MenuItem();
-				this.savePresetMenuItems.Add(saveMenuItem);
+				this._savePresetMenuItems.Add(saveMenuItem);
 				var loadMenuItem = new MenuItem();
-				this.loadPresetMenuItems.Add(loadMenuItem);
+				this._loadPresetMenuItems.Add(loadMenuItem);
 				// TODO: メニューコマンドのセットアップ。
 				string strHeader = ThisAppResources.Preset + String.Format(" #{0:00}", index + 1);
 				saveMenuItem.Header = strHeader;
 				saveMenuItem.Click += (s, e) =>
 				{
-					this.currentSettingsInfo.MainWindowBounds = this.GetWindowBounds();
-					this.currentSettingsInfo.IsMainWindowMaximized = this.WindowState == System.Windows.WindowState.Maximized;
-					this.settingsPresets[index] = this.currentSettingsInfo.Clone();
+					this._currentSettingsInfo.MainWindowBounds = this.GetWindowBounds();
+					this._currentSettingsInfo.IsMainWindowMaximized = this.WindowState == System.Windows.WindowState.Maximized;
+					this._currentSettingsInfo.ImageOpacity = this._vaporSettingsInfo.ImageOpacity;
+					this._currentSettingsInfo.ScaleFactor = this._vaporSettingsInfo.ScaleFactor;
+					this._settingsPresets[index] = this._currentSettingsInfo.Clone();
+					this.SaveSettings(); // 設定のファイル保存は逐次行なうが、ファイル読み込みは起動時のみで、通常はオンメモリ。
 				};
 				loadMenuItem.Header = strHeader;
 				loadMenuItem.Click += (s, e) =>
 				{
-					this.currentSettingsInfo = this.settingsPresets[index].Clone();
-					this.SetWindowBounds(this.currentSettingsInfo.MainWindowBounds);
-					this.WindowState = this.currentSettingsInfo.IsMainWindowMaximized ? System.Windows.WindowState.Maximized : System.Windows.WindowState.Normal;
+					this._currentSettingsInfo.CopyFrom(this._settingsPresets[index]);
+					this.SetWindowBounds(this._currentSettingsInfo.MainWindowBounds);
+					this.WindowState = this._currentSettingsInfo.IsMainWindowMaximized ? System.Windows.WindowState.Maximized : System.Windows.WindowState.Normal;
+					this._vaporSettingsInfo.ImageOpacity = this._currentSettingsInfo.ImageOpacity;
+					this._vaporSettingsInfo.ScaleFactor = this._currentSettingsInfo.ScaleFactor;
+					this.TryLoadOverlayImageFromFile(this._currentSettingsInfo.OverlayImageFilePath);
 					this.UpdateImageTransform();
 				};
 			}
-			this.menuItemSavePresetRoot.ItemsSource = this.savePresetMenuItems;
-			this.menuItemLoadPresetRoot.ItemsSource = this.loadPresetMenuItems;
+			this.menuItemSavePresetRoot.ItemsSource = this._savePresetMenuItems;
+			this.menuItemLoadPresetRoot.ItemsSource = this._loadPresetMenuItems;
 
-			this.DataContext = this.vaporSettingsInfo;
+			this.DataContext = this._vaporSettingsInfo;
 		}
 
 		IntPtr GetWindowHandle()
@@ -250,7 +256,7 @@ namespace WpfWinMirror
 
 		TimeSpan CreateImageUpdateTimerInterval()
 		{
-			return new TimeSpan(0, 0, 0, 0, (int)this.imageUpdateTimerIntervalMillisec);
+			return new TimeSpan(0, 0, 0, 0, (int)this._imageUpdateTimerIntervalMillisec);
 		}
 
 
@@ -384,7 +390,7 @@ namespace WpfWinMirror
 		private void BindWindowCaptureBitmap(IntPtr hwnd)
 		{
 			// 念のため、Dispose() した後のバッファには触らないようにチェックをかける。
-			if (this.winCaptureBuffer == null)
+			if (this._winCaptureBuffer == null)
 			{
 				return;
 			}
@@ -394,9 +400,10 @@ namespace WpfWinMirror
 			var wicBitmap = NativeHelpers.MyWin32InteropHelper.CaptureWindow(hwnd);
 			if (wicBitmap != null)
 #else
-			//bool isCaptureSuccess = this.winCaptureBuffer.CaptureWindow(hwnd, this.currentSettingsInfo.ClippingRect);
-			bool isCaptureSuccess = this.winCaptureBuffer.CaptureWindow(hwnd, Int32Rect.Empty); // キャプチャは全画面で行ない、クリッピングは表示する際に行なう。
-			var wicBitmap = this.winCaptureBuffer.CapturedImage;
+			//bool isCaptureSuccess = this._winCaptureBuffer.CaptureWindow(hwnd, this._currentSettingsInfo.ClippingRect);
+			// キャプチャは全画面で行ない、クリッピングは表示する際に行なう。
+			bool isCaptureSuccess = this._winCaptureBuffer.CaptureWindow(hwnd, Int32Rect.Empty);
+			var wicBitmap = this._winCaptureBuffer.CapturedImage;
 			if (isCaptureSuccess)
 #endif
 			{
@@ -411,39 +418,39 @@ namespace WpfWinMirror
 				this.mainImage.Height = Double.NaN;
 				this._currentTargetWinHandle = IntPtr.Zero;
 			}
-			this.vaporSettingsInfo.IsMainImageCaptured = isCaptureSuccess;
+			this._vaporSettingsInfo.IsMainImageCaptured = isCaptureSuccess;
 		}
 
 		private void UpdateImageTransform()
 		{
-			double reversingScaleX = this.currentSettingsInfo.ReversingScaleX;
-			double reversingScaleY = this.currentSettingsInfo.ReversingScaleY;
+			double reversingScaleX = this._currentSettingsInfo.ReversingScaleX;
+			double reversingScaleY = this._currentSettingsInfo.ReversingScaleY;
 
 			this._geoImageClippingRect.Rect = new Rect(
-				this.currentSettingsInfo.ClippingRect.X,
-				this.currentSettingsInfo.ClippingRect.Y,
-				this.currentSettingsInfo.ClippingRect.Width,
-				this.currentSettingsInfo.ClippingRect.Height);
+				this._currentSettingsInfo.ClippingRect.X,
+				this._currentSettingsInfo.ClippingRect.Y,
+				this._currentSettingsInfo.ClippingRect.Width,
+				this._currentSettingsInfo.ClippingRect.Height);
 
 			// NOTE: パネルの UIElement.Clip プロパティを使ってクリッピングしたときのことも考慮する。
 			// クリッピングなしの場合はキャプチャ画像／ファイル読み込み画像の中心ごとにそれぞれ反転させるべきだが、
 			// クリッピングした場合は Grid のほうを反転させたほうがよいかも。
 
-			if (this.currentSettingsInfo.ClippingRect.HasArea)
+			if (this._currentSettingsInfo.ClippingRect.HasArea)
 			{
 				// ユーザー定義のクリッピング領域の中心を基点に反転する。
 				// 切り出した領域を常に左上に配置する。
 				// HACK: 中心位置の算出は浮動小数ではなく整数で演算して切り捨てるべきか？
 
-				double clippingCenterX = this.currentSettingsInfo.ClippingRect.Width * 0.5;
-				double clippingCenterY = this.currentSettingsInfo.ClippingRect.Height * 0.5;
+				double clippingCenterX = this._currentSettingsInfo.ClippingRect.Width * 0.5;
+				double clippingCenterY = this._currentSettingsInfo.ClippingRect.Height * 0.5;
 
 				this.mainImage.RenderTransform = Transform.Identity;
 				this.overlayImage.RenderTransform = Transform.Identity;
 
 				this.gridForImage.Clip = this._geoImageClippingRect;
-				this.clippingTranslateGridForImage.X = -this.currentSettingsInfo.ClippingRect.X;
-				this.clippingTranslateGridForImage.Y = -this.currentSettingsInfo.ClippingRect.Y;
+				this.clippingTranslateGridForImage.X = -this._currentSettingsInfo.ClippingRect.X;
+				this.clippingTranslateGridForImage.Y = -this._currentSettingsInfo.ClippingRect.Y;
 				this.clippingScaleGridForImage.ScaleX = reversingScaleX;
 				this.clippingScaleGridForImage.ScaleY = reversingScaleY;
 				this.clippingScaleGridForImage.CenterX = clippingCenterX;
@@ -502,15 +509,15 @@ namespace WpfWinMirror
 			// INotifyPropertyChanged はともかくコンバーターの実装がダルいので明示的に更新する。
 
 			UpdateMenuItemIconImageBorder(this.menuItemEffectNone, (this._effectTargetElement.Effect == null));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectGrayscale, (this._effectTargetElement.Effect == this.grayscaleEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectNPInvert, (this._effectTargetElement.Effect == this.npInvertEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectDarknessToOpacity, (this._effectTargetElement.Effect == this.darknessToOpacityEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemEffectBrightnessToOpacity, (this._effectTargetElement.Effect == this.brightnessToOpacityEffect));
-			UpdateMenuItemIconImageBorder(this.menuItemFrameRateStop, (this.imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.ForStop));
-			UpdateMenuItemIconImageBorder(this.menuItemFrameRate10fps, (this.imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.For10fps));
-			UpdateMenuItemIconImageBorder(this.menuItemFrameRate20fps, (this.imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.For20fps));
-			UpdateMenuItemIconImageBorder(this.menuItemHorizontalReverse, this.currentSettingsInfo.IsHorizontalReversed);
-			UpdateMenuItemIconImageBorder(this.menuItemVerticalReverse, this.currentSettingsInfo.IsVerticalReversed);
+			UpdateMenuItemIconImageBorder(this.menuItemEffectGrayscale, (this._effectTargetElement.Effect == this._grayscaleEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectNPInvert, (this._effectTargetElement.Effect == this._npInvertEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectDarknessToOpacity, (this._effectTargetElement.Effect == this._darknessToOpacityEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemEffectBrightnessToOpacity, (this._effectTargetElement.Effect == this._brightnessToOpacityEffect));
+			UpdateMenuItemIconImageBorder(this.menuItemFrameRateStop, (this._imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.ForStop));
+			UpdateMenuItemIconImageBorder(this.menuItemFrameRate10fps, (this._imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.For10fps));
+			UpdateMenuItemIconImageBorder(this.menuItemFrameRate20fps, (this._imageUpdateTimerIntervalMillisec == MyTimerIntervalMillisec.For20fps));
+			UpdateMenuItemIconImageBorder(this.menuItemHorizontalReverse, this._currentSettingsInfo.IsHorizontalReversed);
+			UpdateMenuItemIconImageBorder(this.menuItemVerticalReverse, this._currentSettingsInfo.IsVerticalReversed);
 			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternNone, (this.gridForBack.Background == ZeroBrush));
 			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternBlack, (this.gridForBack.Background == Brushes.Black));
 			UpdateMenuItemIconImageBorder(this.menuItemBackgroundPatternGray, (this.gridForBack.Background == Brushes.Gray));
@@ -562,7 +569,7 @@ namespace WpfWinMirror
 		{
 			System.Diagnostics.Debug.WriteLine(System.Reflection.MethodBase.GetCurrentMethod().Name);
 
-			this.vaporSettingsInfo.IsTransparentMode = !this.vaporSettingsInfo.IsTransparentMode;
+			this._vaporSettingsInfo.IsTransparentMode = !this._vaporSettingsInfo.IsTransparentMode;
 
 			this.UpdateWindowTransparentStyle();
 		}
@@ -572,48 +579,50 @@ namespace WpfWinMirror
 			// WS_EX_TRANSPARENT をセットすることで、Window 全体のヒットテストを完全に無効化できる。
 			// 完全にヒットテストを切ってしまうとユーザーが混乱するおそれがあるので、本当は描画領域のヒットテストだけを切りたいが、
 			// 不透明画像を Window に描画した時点でヒットテストが有効になってしまうらしい。
-			MyMiscHelpers.MyWin32InteropHelper.SetWindowStyleExTransparent(this.GetWindowHandle(), this.vaporSettingsInfo.IsTransparentMode);
+			MyMiscHelpers.MyWin32InteropHelper.SetWindowStyleExTransparent(this.GetWindowHandle(), this._vaporSettingsInfo.IsTransparentMode);
 #if false
 			// Image が完全不透明だと混乱しやすくなりそうなので、わずかに透過する。
-			this.mainImage.Opacity = this.vaporSettingsInfo.IsTransparentMode ? 0.9 : 1.0;
+			this.mainImage.Opacity = this._vaporSettingsInfo.IsTransparentMode ? 0.9 : 1.0;
 #endif
 
 			//this.UpdateMenuCheckedState();
 		}
 
+#if false
 		private void EffectNoneCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			//this._effectTargetElement.Effect = null;
-			//this.UpdateMenuCheckedState();
+			this._effectTargetElement.Effect = null;
+			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectGrayscaleCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			//this._effectTargetElement.Effect = this.grayscaleEffect;
-			//this.UpdateMenuCheckedState();
+			this._effectTargetElement.Effect = this._grayscaleEffect;
+			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectNPInvertCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			//this._effectTargetElement.Effect = this.npInvertEffect;
-			//this.UpdateMenuCheckedState();
+			this._effectTargetElement.Effect = this._npInvertEffect;
+			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectDarknessToOpacityCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			//this._effectTargetElement.Effect = this.darknessToOpacityEffect;
-			//this.UpdateMenuCheckedState();
+			this._effectTargetElement.Effect = this._darknessToOpacityEffect;
+			this.UpdateMenuCheckedState();
 		}
 
 		private void EffectBrightnessToOpacityCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			//this._effectTargetElement.Effect = this.brightnessToOpacityEffect;
-			//this.UpdateMenuCheckedState();
+			this._effectTargetElement.Effect = this._brightnessToOpacityEffect;
+			this.UpdateMenuCheckedState();
 		}
+#endif
 
 		private void HorizontalReverseCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.currentSettingsInfo.ToggleHorizontalReversed();
+			this._currentSettingsInfo.ToggleHorizontalReversed();
 
 			this.UpdateImageTransform();
 			this.UpdateMenuCheckedState();
@@ -621,7 +630,7 @@ namespace WpfWinMirror
 
 		private void VerticalReverseCommand_Executed(object sender, ExecutedRoutedEventArgs e)
 		{
-			this.currentSettingsInfo.ToggleVerticalReversed();
+			this._currentSettingsInfo.ToggleVerticalReversed();
 
 			this.UpdateImageTransform();
 			this.UpdateMenuCheckedState();
@@ -657,13 +666,13 @@ namespace WpfWinMirror
 			this.Close();
 		}
 
-		#endregion
+#endregion
 
 		private void menuItemReset_Click(object sender, RoutedEventArgs e)
 		{
-			this.vaporSettingsInfo.Reset();
+			this._vaporSettingsInfo.Reset();
 			this.UpdateWindowTransparentStyle();
-			this.currentSettingsInfo.Reset();
+			this._currentSettingsInfo.Reset();
 
 			this.rectSelectRegion.Width = 0;
 			this.rectSelectRegion.Height = 0;
@@ -677,16 +686,23 @@ namespace WpfWinMirror
 			// ターゲット ウィンドウのリセット。
 			this.BindWindowCaptureBitmap(IntPtr.Zero);
 
+			this.ResetOverlayImage();
+
+			// アプリケーション ウィンドウのリセット。
+			this.Left = this._defaultWindowBounds.Left;
+			this.Top = this._defaultWindowBounds.Top;
+			this.Width = this._defaultWindowBounds.Width;
+			this.Height = this._defaultWindowBounds.Height;
+			this.WindowState = System.Windows.WindowState.Normal;
+		}
+
+		private void ResetOverlayImage()
+		{
 			this.overlayImage.Source = null;
 			this.overlayImage.Width = Double.NaN;
 			this.overlayImage.Height = Double.NaN;
-
-			// アプリケーション ウィンドウのリセット。
-			this.Left = this.defaultWindowBounds.Left;
-			this.Top = this.defaultWindowBounds.Top;
-			this.Width = this.defaultWindowBounds.Width;
-			this.Height = this.defaultWindowBounds.Height;
-			this.WindowState = System.Windows.WindowState.Normal;
+			this._vaporSettingsInfo.IsOverlayImageLoaded = false;
+			this._currentSettingsInfo.OverlayImageFilePath = String.Empty;
 		}
 
 		private void Window_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
@@ -699,12 +715,12 @@ namespace WpfWinMirror
 			}
 
 			this.CaptureMouse();
-			this.dragStartPos = e.GetPosition(this._baseElementForSelectRegionCalc);
+			this._dragStartPos = e.GetPosition(this._baseElementForSelectRegionCalc);
 			this.rectSelectRegion.Width = 0;
 			this.rectSelectRegion.Height = 0;
 			this.rectSelectRegion.Fill = SelectRegionFillBrush;
 			this.rectSelectRegion.Visibility = System.Windows.Visibility.Visible;
-			this.isDragging = true;
+			this._isDragging = true;
 		}
 
 		private void Window_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
@@ -717,31 +733,31 @@ namespace WpfWinMirror
 			this.ReleaseMouseCapture();
 			// 等倍表示でない場合、実際のクリッピング矩形はスケーリングしてやる必要がある。
 			// 内部計算は変更する必要はなく、RenderTransform を使えばよい。
-			this.isDragging = false;
+			this._isDragging = false;
 			this.rectSelectRegion.Fill = null;
 			this.rectSelectRegion.Visibility = System.Windows.Visibility.Collapsed;
 			//var newRect = this.GetVisualSelectRegionRectPosition();
 			var newRect = this.GetVisualSelectRegionRectPositionInImageCoord();
 			if (newRect.Width > 0 && newRect.Height > 0)
 			{
-				this.currentSettingsInfo.ClippingRect = newRect;
+				this._currentSettingsInfo.ClippingRect = newRect;
 			}
 			else
 			{
-				this.currentSettingsInfo.ClippingRect = Int32Rect.Empty;
+				this._currentSettingsInfo.ClippingRect = Int32Rect.Empty;
 			}
 			this.UpdateImageTransform();
 		}
 
 		private void Window_MouseMove(object sender, MouseEventArgs e)
 		{
-			if (this.isDragging)
+			if (this._isDragging)
 			{
 				var currentPos = e.GetPosition(this._baseElementForSelectRegionCalc);
 				// 左上から右下にドラッグするパターンだけでなく、右下から左上にドラッグするパターンなども考慮して、Left, Top, Width, Height を決める。
 				double left, top, width, height;
-				ClampPair(currentPos.X, this.dragStartPos.X, System.Windows.SystemParameters.MaximizedPrimaryScreenWidth, out left, out width);
-				ClampPair(currentPos.Y, this.dragStartPos.Y, System.Windows.SystemParameters.MaximizedPrimaryScreenHeight, out top, out height);
+				ClampPair(currentPos.X, this._dragStartPos.X, System.Windows.SystemParameters.MaximizedPrimaryScreenWidth, out left, out width);
+				ClampPair(currentPos.Y, this._dragStartPos.Y, System.Windows.SystemParameters.MaximizedPrimaryScreenHeight, out top, out height);
 				// ビジュアルの選択矩形の更新。
 				// ドラッグ中はクリッピング領域の矩形データは更新しない（データ バインディングなどで自動的に連動されるようにはしない）。
 				this.SetVisualSelectRegionRectPosition(left, top, width, height);
@@ -893,7 +909,7 @@ namespace WpfWinMirror
 					var preset = SerializableSettingsInfo.FromStringLine(settings.Presets[i]);
 					if (preset != null)
 					{
-						this.settingsPresets[i] = preset;
+						this._settingsPresets[i] = preset;
 					}
 				}
 			}
@@ -915,7 +931,7 @@ namespace WpfWinMirror
 			// なお、StringCollection は <ArrayOfString/> として XML 形式で保存される。
 			// HACK: Dictionary のコレクションのほうがよいか？
 			settings.Presets = new System.Collections.Specialized.StringCollection();
-			foreach (var p in this.settingsPresets)
+			foreach (var p in this._settingsPresets)
 			{
 				settings.Presets.Add(p.ToStringLine());
 			}
@@ -939,7 +955,7 @@ namespace WpfWinMirror
 			};
 #endif
 
-			this.customWinProc.AttachCustomWndProc(this.GetWindowHandle());
+			this._customWinProc.AttachCustomWndProc(this.GetWindowHandle());
 
 			// 最大化コマンドを無効にすると、Aero Snap による左右分割も使えなくなる。
 			//MyMiscHelpers.MyWin32InteropHelper.DisableMaximizeButton(this.GetWindowHandle());
@@ -949,7 +965,7 @@ namespace WpfWinMirror
 			// SourceInitialized イベント受信のタイミングであれば、
 			// WindowStartupLocation="CenterScreen" でセンタリングされたときの実際の初期位置情報を取得できる。
 			// Win32 ウィンドウ ハンドルが正しく取得できるのもこのタイミング以降になるはず。
-			this.defaultWindowBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
+			this._defaultWindowBounds = new Rect(this.Left, this.Top, this.Width, this.Height);
 
 			// アプリケーション設定の読み込み。
 			this.LoadSettings();
@@ -963,16 +979,16 @@ namespace WpfWinMirror
 
 		private void Window_Closed(object sender, EventArgs e)
 		{
-			this.dispatcherTimer.Stop();
-			this.dispatcherTimer.Tick -= this.dispatcherTimer_Tick;
-			MyMiscHelpers.MyGenericsHelper.SafeDispose(ref this.winCaptureBuffer);
-			this.customWinProc.DetachCustomWndProc();
+			this._dispatcherTimer.Stop();
+			this._dispatcherTimer.Tick -= this.dispatcherTimer_Tick;
+			MyMiscHelpers.MyGenericsHelper.SafeDispose(ref this._winCaptureBuffer);
+			this._customWinProc.DetachCustomWndProc();
 		}
 
 		private void menuItemSaveImageAs_Click(object sender, RoutedEventArgs e)
 		{
 			// モーダル ダイアログを表示している間もメッセージ ループは回っているため、キャプチャ画像の更新は行なわれる。
-			// もしファイル アクセスにサブスレッドを使って非同期処理する場合は注意。
+			// NOTE: もしファイル アクセスにサブスレッドを使って非同期処理する場合は注意。
 			// UNDONE: ユーザーが任意のタイミングでフリーズした画像を保存したければ、
 			// タイマーを一時停止したり画像を複製してキャッシュしておいたりする機能を追加する必要がある。
 
@@ -980,21 +996,20 @@ namespace WpfWinMirror
 			// WPF 向けの Microsoft.Win32.CommonDialog はただの抽象クラス。
 			try
 			{
-				var sfd = new Microsoft.Win32.SaveFileDialog();
-				sfd.FileName = "WpfWinMirrorSS.png";
-				sfd.DefaultExt = ".png";
-				sfd.Filter = "PNG Files|*.png";
+				var fileDlg = new Microsoft.Win32.SaveFileDialog();
+				fileDlg.FileName = "WpfWinMirrorSS.png";
+				fileDlg.DefaultExt = ".png";
+				fileDlg.Filter = "PNG Files|*.png";
 
-				var result = sfd.ShowDialog();
+				var result = fileDlg.ShowDialog();
 				if (result == true)
 				{
-					this.winCaptureBuffer.SaveImageAsPngFile(sfd.FileName, this._currentTargetWinHandle, this.currentSettingsInfo.ClippingRect);
+					this.TrySaveCapturedImageFromFile(fileDlg.FileName);
 				}
 			}
-			catch (Exception err)
+			catch (Exception ex)
 			{
-				System.Diagnostics.Debug.WriteLine(err.Message);
-				MessageBox.Show(ThisAppResources.ErrMsgFailedToSaveImage, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -1005,9 +1020,9 @@ namespace WpfWinMirror
 
 			try
 			{
-				var sfd = new Microsoft.Win32.OpenFileDialog();
-				//sfd.FileName = "*.png";
-				sfd.Filter = "All Image Files|*.png;*.gif;*.bmp;*.dib;*.jpg;*.jpeg;*.tif;*.tiff|"
+				var fileDlg = new Microsoft.Win32.OpenFileDialog();
+				//fileDlg.FileName = "*.png"; // フィルターも勝手に選択される。
+				fileDlg.Filter = "All Image Files|*.png;*.gif;*.bmp;*.dib;*.jpg;*.jpeg;*.tif;*.tiff|"
 					+ "PNG Files|*.png|"
 					+ "GIF Files|*.gif|"
 					+ "BMP Files|*.bmp;*.dib|"
@@ -1015,27 +1030,83 @@ namespace WpfWinMirror
 					+ "TIFF Files|*.tif;*.tiff|"
 					+ "All Files|*.*";
 
-				var result = sfd.ShowDialog();
+				var result = fileDlg.ShowDialog();
 				if (result == true)
 				{
-					// HACK: オーバーレイ画像の読み込み。キャプチャ画像とは別に管理する。
-					var bmp = MyWpfHelpers.MyWpfImageHelper.CreateBitmapFromSharableFileStream(sfd.FileName, true, BitmapCreateOptions.None, BitmapCacheOption.Default);
-					if (bmp != null)
-					{
-						this.overlayImage.Source = bmp;
-						this.overlayImage.Width = bmp.PixelWidth;
-						this.overlayImage.Height = bmp.PixelHeight;
-						this.vaporSettingsInfo.IsOverlayImageLoaded = true;
-					}
+					this.TryLoadOverlayImageFromFile(fileDlg.FileName);
+				}
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+
+		private void TrySaveCapturedImageFromFile(string filePath)
+		{
+			try
+			{
+				//this._winCaptureBuffer.SaveImageAsPngFile(filePath, this._currentTargetWinHandle, this._currentSettingsInfo.ClippingRect);
+				// キャプチャは全画面で行ない、クリッピングは表示する際に行なう。
+				this._winCaptureBuffer.SaveImageAsPngFile(filePath, this._currentTargetWinHandle, Int32Rect.Empty);
+			}
+			catch (Exception ex)
+			{
+				// HACK: ウィンドウをキャプチャしていなかったときは別途分かりやすいエラーメッセージを出すとよいかも。
+				System.Diagnostics.Debug.WriteLine(ex.Message);
+				MessageBox.Show(ThisAppResources.ErrMsgFailedToSaveImage + "\n\n" + ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+
+		private void TryLoadOverlayImageFromFile(string filePath)
+		{
+			try
+			{
+				this.LoadOverlayImageFromFile(filePath);
+			}
+			catch (Exception ex)
+			{
+				System.Diagnostics.Debug.WriteLine(ex.Message);
+				MessageBox.Show(ThisAppResources.ErrMsgFailedToLoadImage + "\n\n" + ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+
+		/// <summary>
+		/// オーバーレイ画像の読み込み。キャプチャ画像とは別に管理する。
+		/// </summary>
+		/// <param name="filePath"></param>
+		private void LoadOverlayImageFromFile(string filePath)
+		{
+			// ファイルパスが空の場合は、画像を空にする。こちらは正常系。
+			if (String.IsNullOrEmpty(filePath))
+			{
+				this.ResetOverlayImage();
+				return;
+			}
+
+			try
+			{
+				// ファイルが存在しない場合は、例外をそのまま伝播させる。異常系。
+				var bmp = MyWpfHelpers.MyWpfImageHelper.CreateBitmapFromSharableFileStream(filePath, true, BitmapCreateOptions.None, BitmapCacheOption.Default);
+				// 読み込みに失敗した場合は例外がスローされるので、null チェックは必要ないはずだが、念のため実施する。
+				if (bmp == null)
+				{
+					throw new Exception("Obtained bitmap is null!!");
 				}
 
-				// HACK: たまに画像を読み込んだ直後に描画が反映されないことがある。一度ウィンドウをクリックすると反映される。要調査＆改善。
+				this.overlayImage.Source = bmp;
+				this.overlayImage.Width = bmp.PixelWidth;
+				this.overlayImage.Height = bmp.PixelHeight;
+				this._vaporSettingsInfo.IsOverlayImageLoaded = true;
+				this._currentSettingsInfo.OverlayImageFilePath = filePath;
 			}
-			catch (Exception err)
+			catch
 			{
-				System.Diagnostics.Debug.WriteLine(err.Message);
-				MessageBox.Show(ThisAppResources.ErrMsgFailedToLoadImage, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				this.ResetOverlayImage();
+				throw;
 			}
+
+			// HACK: たまに画像を読み込んだ直後に描画が反映されないことがある。一度ウィンドウをクリックすると反映される。要調査＆改善。
 		}
 
 		private void buttonMinimize_Click(object sender, RoutedEventArgs e)
@@ -1057,10 +1128,10 @@ namespace WpfWinMirror
 		{
 			if (this._currentTargetWinHandle != IntPtr.Zero)
 			{
-				if (this.currentSettingsInfo.ClippingRect.HasArea)
+				if (this._currentSettingsInfo.ClippingRect.HasArea)
 				{
-					this.Width = this.currentSettingsInfo.ClippingRect.Width;
-					this.Height = this.currentSettingsInfo.ClippingRect.Height;
+					this.Width = this._currentSettingsInfo.ClippingRect.Width;
+					this.Height = this._currentSettingsInfo.ClippingRect.Height;
 					// 最大化されている場合は元に戻す。
 					this.WindowState = System.Windows.WindowState.Normal;
 				}
@@ -1087,13 +1158,13 @@ namespace WpfWinMirror
 
 		void ResetImageUpdateTimer(MyTimerIntervalMillisec newVal)
 		{
-			System.Diagnostics.Debug.Assert(this.dispatcherTimer != null);
-			this.dispatcherTimer.Stop();
-			this.imageUpdateTimerIntervalMillisec = newVal;
+			System.Diagnostics.Debug.Assert(this._dispatcherTimer != null);
+			this._dispatcherTimer.Stop();
+			this._imageUpdateTimerIntervalMillisec = newVal;
 			if (newVal > 0)
 			{
-				this.dispatcherTimer.Interval = this.CreateImageUpdateTimerInterval();
-				this.dispatcherTimer.Start();
+				this._dispatcherTimer.Interval = this.CreateImageUpdateTimerInterval();
+				this._dispatcherTimer.Start();
 			}
 		}
 
@@ -1149,22 +1220,22 @@ namespace WpfWinMirror
 
 		private void menuItemEffectGrayscale_Click(object sender, RoutedEventArgs e)
 		{
-			this._effectTargetElement.Effect = this.grayscaleEffect;
+			this._effectTargetElement.Effect = this._grayscaleEffect;
 		}
 
 		private void menuItemEffectNPInvert_Click(object sender, RoutedEventArgs e)
 		{
-			this._effectTargetElement.Effect = this.npInvertEffect;
+			this._effectTargetElement.Effect = this._npInvertEffect;
 		}
 
 		private void menuItemEffectDarknessToOpacity_Click(object sender, RoutedEventArgs e)
 		{
-			this._effectTargetElement.Effect = this.darknessToOpacityEffect;
+			this._effectTargetElement.Effect = this._darknessToOpacityEffect;
 		}
 
 		private void menuItemEffectBrightnessToOpacity_Click(object sender, RoutedEventArgs e)
 		{
-			this._effectTargetElement.Effect = this.brightnessToOpacityEffect;
+			this._effectTargetElement.Effect = this._brightnessToOpacityEffect;
 		}
 	}
 
@@ -1229,19 +1300,28 @@ namespace WpfWinMirror
 	/// </summary>
 	internal class SerializableSettingsInfo
 	{
-		const char separator = ';';
+		// セパレータにはファイルパスとして使えない文字を選ぶ。当初はセミコロンを使おうと思っていたが、実は Windows ではセミコロンをファイル名に使うことができるので却下。
+		const string Separator = "||";
+		const char DoubleQuote = '"';
 
 		static readonly Regex regexIsHorizontalReversed;
 		static readonly Regex regexIsVerticalReversed;
 		static readonly Regex regexClippingRect;
 		static readonly Regex regexIsMainWindowMaximized;
 		static readonly Regex regexMainWindowBounds;
+		static readonly Regex regexImageOpacity;
+		static readonly Regex regexScaleFactor;
+		static readonly Regex regexOverlayImageFilePath;
 
 		public bool IsHorizontalReversed { get; set; }
 		public bool IsVerticalReversed { get; set; }
 		public Int32Rect ClippingRect { get; set; }
 		public bool IsMainWindowMaximized { get; set; }
 		public Int32Rect MainWindowBounds { get; set; }
+		public double ImageOpacity { get; set; } = 1;
+		public double ScaleFactor { get; set; } = 1;
+		// HACK: バインディング用とシリアライズ用とで二重管理になっているのをなんとかしたい。
+		public string OverlayImageFilePath { get; set; } = String.Empty;
 
 		public double ClippingRectCenterX { get { return this.ClippingRect.X + this.ClippingRect.Width * 0.5; } }
 		public double ClippingRectCenterY { get { return this.ClippingRect.Y + this.ClippingRect.Height * 0.5; } }
@@ -1249,23 +1329,42 @@ namespace WpfWinMirror
 		public double ReversingScaleX { get { return this.IsHorizontalReversed ? -1 : 1; } }
 		public double ReversingScaleY { get { return this.IsVerticalReversed ? -1 : 1; } }
 
+		public void ToggleHorizontalReversed() { this.IsHorizontalReversed = !this.IsHorizontalReversed; }
+		public void ToggleVerticalReversed() { this.IsVerticalReversed = !this.IsVerticalReversed; }
+
 		static string CreateElementRegex(string targetName)
 		{
-			return @"\s*" + targetName + @"\s*\=\s*(.+)\s*";
+			return @"\s*" + targetName + @"\s*\=\s*(.+)$";
+		}
+
+		static string CreateDoubleQuotedElementRegex(string targetName)
+		{
+			return @"\s*" + targetName + @"\s*\=\s*""(.+)""$";
+		}
+
+		static string CreateAngleBracketElementRegex(string targetName)
+		{
+			return @"\s*" + targetName + @"\s*\=\s*<(.+)>$";
 		}
 
 		static SerializableSettingsInfo()
 		{
 			// 文字列解析用正規表現をコンパイルしておく。
-			regexIsHorizontalReversed = new Regex(CreateElementRegex("IsHorizontalReversed"),
+			regexIsHorizontalReversed = new Regex(CreateElementRegex(nameof(IsHorizontalReversed)),
 				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
-			regexIsVerticalReversed = new Regex(CreateElementRegex("IsVerticalReversed"),
+			regexIsVerticalReversed = new Regex(CreateElementRegex(nameof(IsVerticalReversed)),
 				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
-			regexClippingRect = new Regex(@"\s*ClippingRect\s*\=\s*(.+)\s*",
+			regexClippingRect = new Regex(CreateElementRegex(nameof(ClippingRect)),
 				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
-			regexIsMainWindowMaximized = new Regex(@"\s*IsMainWindowMaximized\s*\=\s*(.+)\s*",
+			regexIsMainWindowMaximized = new Regex(CreateElementRegex(nameof(IsMainWindowMaximized)),
 				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
-			regexMainWindowBounds = new Regex(@"\s*MainWindowBounds\s*\=\s*(.+)\s*",
+			regexMainWindowBounds = new Regex(CreateElementRegex(nameof(MainWindowBounds)),
+				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
+			regexImageOpacity = new Regex(CreateElementRegex(nameof(ImageOpacity)),
+				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
+			regexScaleFactor = new Regex(CreateElementRegex(nameof(ScaleFactor)),
+				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
+			regexOverlayImageFilePath = new Regex(CreateDoubleQuotedElementRegex(nameof(OverlayImageFilePath)),
 				RegexOptions.IgnoreCase | RegexOptions.ECMAScript | RegexOptions.Compiled);
 		}
 
@@ -1286,6 +1385,9 @@ namespace WpfWinMirror
 			this.ClippingRect = Int32Rect.Empty;
 			this.IsMainWindowMaximized = false;
 			this.MainWindowBounds = Int32Rect.Empty;
+			this.ImageOpacity = 1;
+			this.ScaleFactor = 1;
+			this.OverlayImageFilePath = String.Empty;
 		}
 
 		public void CopyFrom(SerializableSettingsInfo src)
@@ -1295,19 +1397,25 @@ namespace WpfWinMirror
 			this.ClippingRect = src.ClippingRect;
 			this.IsMainWindowMaximized = src.IsMainWindowMaximized;
 			this.MainWindowBounds = src.MainWindowBounds;
+			this.ImageOpacity = src.ImageOpacity;
+			this.ScaleFactor = src.ScaleFactor;
+			this.OverlayImageFilePath = src.OverlayImageFilePath;
 		}
 
 		public string ToStringLine()
 		{
-			// XML 要素値として書き出すため、インライン文字列化する。
+			// シンプルな XML 要素値として書き出すため、手動でインライン文字列化する。
 			// XML ファイルを直接見たときに各値の意味が分かりやすいように、
-			// 単純な CSV ではなくセミコロン区切りの独自フォーマット文字列に変換する。
+			// 単純な CSV/TSV ではなくセパレータ区切りの独自フォーマット文字列に変換する。
 			return
-				"IsHorizontalReversed = " + this.IsHorizontalReversed.ToString() + separator + " " +
-				"IsVerticalReversed = " + this.IsVerticalReversed.ToString() + separator + " " +
-				"ClippingRect = " + this.ClippingRect.ToString() + separator + " " +
-				"IsMainWindowMaximized = " + this.IsMainWindowMaximized.ToString() + separator + " " +
-				"MainWindowBounds = " + this.MainWindowBounds.ToString() + separator + " " +
+				nameof(IsHorizontalReversed) + " = " + this.IsHorizontalReversed.ToString() + Separator +
+				nameof(IsVerticalReversed) + " = " + this.IsVerticalReversed.ToString() + Separator +
+				nameof(ClippingRect) + " = " + this.ClippingRect.ToString() + Separator +
+				nameof(IsMainWindowMaximized) + " = " + this.IsMainWindowMaximized.ToString() + Separator +
+				nameof(MainWindowBounds) + " = " + this.MainWindowBounds.ToString() + Separator +
+				nameof(ImageOpacity) + " = " + this.ImageOpacity.ToString() + Separator +
+				nameof(ScaleFactor) + " = " + this.ScaleFactor.ToString() + Separator +
+				nameof(OverlayImageFilePath) + " = " + DoubleQuote + this.OverlayImageFilePath + DoubleQuote + Separator +
 				null;
 		}
 
@@ -1318,61 +1426,113 @@ namespace WpfWinMirror
 			try
 			{
 				var newInfo = new SerializableSettingsInfo();
-				var strSet = src.Split(separator);
+				var strSet = src.Split(new[] { Separator }, StringSplitOptions.None);
 				foreach (string s in strSet)
 				{
+					try
 					{
 						var match = regexIsHorizontalReversed.Match(s);
 						if (match.Success)
 						{
 							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
 							newInfo.IsHorizontalReversed = Convert.ToBoolean(match.Groups[1].Value);
+							continue;
 						}
 					}
+					catch { continue; }
+
+					try
 					{
 						var match = regexIsVerticalReversed.Match(s);
 						if (match.Success)
 						{
 							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
 							newInfo.IsVerticalReversed = Convert.ToBoolean(match.Groups[1].Value);
+							continue;
 						}
 					}
+					catch { continue; }
+
+					try
 					{
 						var match = regexClippingRect.Match(s);
 						if (match.Success)
 						{
 							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
 							newInfo.ClippingRect = Int32Rect.Parse(match.Groups[1].Value);
+							continue;
 						}
 					}
+					catch { continue; }
+
+					try
 					{
 						var match = regexIsMainWindowMaximized.Match(s);
 						if (match.Success)
 						{
 							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
 							newInfo.IsMainWindowMaximized = Convert.ToBoolean(match.Groups[1].Value);
+							continue;
 						}
 					}
+					catch { continue; }
+
+					try
 					{
 						var match = regexMainWindowBounds.Match(s);
 						if (match.Success)
 						{
 							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
 							newInfo.MainWindowBounds = Int32Rect.Parse(match.Groups[1].Value);
+							continue;
 						}
 					}
+					catch { continue; }
+
+					try
+					{
+						var match = regexImageOpacity.Match(s);
+						if (match.Success)
+						{
+							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
+							newInfo.ImageOpacity = Convert.ToDouble(match.Groups[1].Value);
+							continue;
+						}
+					}
+					catch { continue; }
+
+					try
+					{
+						var match = regexScaleFactor.Match(s);
+						if (match.Success)
+						{
+							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
+							newInfo.ScaleFactor = Convert.ToDouble(match.Groups[1].Value);
+							continue;
+						}
+					}
+					catch { continue; }
+
+					try
+					{
+						var match = regexOverlayImageFilePath.Match(s);
+						if (match.Success)
+						{
+							//System.Diagnostics.Debug.WriteLine(match.Groups[1]);
+							newInfo.OverlayImageFilePath = match.Groups[1].Value;
+							continue;
+						}
+					}
+					catch { continue; }
 				}
 				return newInfo;
 			}
-			catch (Exception err)
+			catch (Exception ex)
 			{
-				System.Diagnostics.Debug.WriteLine(err.Message);
+				System.Diagnostics.Debug.WriteLine(ex.Message);
 				return null;
 			}
 		}
-
-		public void ToggleHorizontalReversed() { this.IsHorizontalReversed = !this.IsHorizontalReversed; }
-		public void ToggleVerticalReversed() { this.IsVerticalReversed = !this.IsVerticalReversed; }
 	}
 
 	/// <summary>

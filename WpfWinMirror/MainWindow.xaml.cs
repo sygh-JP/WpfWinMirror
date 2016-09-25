@@ -1538,7 +1538,7 @@ namespace WpfWinMirror
 	/// <summary>
 	/// アプリ終了時に保存されない、揮発性の設定データを管理する。データ バインディングに使う。
 	/// </summary>
-	internal class NonserializableSettingsInfo : MyWpfHelpers.MyNotifyPropertyChangedBase
+	internal class NonserializableSettingsInfo : MyBindingHelpers.MyNotifyPropertyChangedBase
 	{
 		public double ImageOpacityMin { get { return 0.1; } }
 		public double ImageOpacityMax { get { return 1; } }
@@ -1649,10 +1649,10 @@ namespace WpfWinMirror
 			this.IsOverlayImageLoaded = false;
 		}
 
-		public MyWpfHelpers.DelegateCommand IncreaseImageOpacityCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
-		public MyWpfHelpers.DelegateCommand DecreaseImageOpacityCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
-		public MyWpfHelpers.DelegateCommand IncreaseScaleFactorCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
-		public MyWpfHelpers.DelegateCommand DecreaseScaleFactorCommand { get; private set; } = new MyWpfHelpers.DelegateCommand();
+		public MyBindingHelpers.DelegateCommand IncreaseImageOpacityCommand { get; private set; } = new MyBindingHelpers.DelegateCommand();
+		public MyBindingHelpers.DelegateCommand DecreaseImageOpacityCommand { get; private set; } = new MyBindingHelpers.DelegateCommand();
+		public MyBindingHelpers.DelegateCommand IncreaseScaleFactorCommand { get; private set; } = new MyBindingHelpers.DelegateCommand();
+		public MyBindingHelpers.DelegateCommand DecreaseScaleFactorCommand { get; private set; } = new MyBindingHelpers.DelegateCommand();
 	}
 
 	// 参考：

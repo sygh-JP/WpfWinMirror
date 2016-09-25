@@ -12,10 +12,10 @@ WinMirrorは他の可視アプリケーションのウィンドウ画像を定�
 さらに、既存の画像ファイルを選択してオーバーレイ表示することも可能です。
 
 ## Development Environment (開発環境)
-* Microsoft Visual Studio 2015 Community Update 2
+* Microsoft Visual Studio 2015 Update 3
 * .NET Framework 4.5 (WPF)
 
 ## Target Environment (ターゲット環境)
 * Windows Vista/Windows 7/Windows 8.1/Windows 10 (Desktop)
 
-2016-06-19, sygh.
+2016-09-25, sygh.

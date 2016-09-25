@@ -173,7 +173,7 @@ namespace MyWpfHelpers
 		/// <summary>
 		/// カルチャー名だけを管理する。
 		/// </summary>
-		public class MySimpleLanguageManager : MyNotifyPropertyChangedBase
+		public class MySimpleLanguageManager : MyBindingHelpers.MyNotifyPropertyChangedBase
 		{
 			public const string DefaultCultureName = "<Default>";
 

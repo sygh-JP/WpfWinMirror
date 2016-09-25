@@ -12,11 +12,11 @@ namespace MyWpfConverters
 		{
 			if (targetType != typeof(bool))
 			{
-				throw new ArgumentException("The target must be a 'bool'.");
+				throw new ArgumentException("The target must be a 'bool'.", "targetType");
 			}
 			if (!(value is bool))
 			{
-				throw new ArgumentException("The value must be a 'bool'.");
+				throw new ArgumentException("The value must be a 'bool'.", "value");
 			}
 			return !(bool)value;
 		}
@@ -34,11 +34,11 @@ namespace MyWpfConverters
 		{
 			if (targetType != typeof(double))
 			{
-				throw new ArgumentException("The target must be a 'double'.");
+				throw new ArgumentException("The target must be a 'double'.", "targetType");
 			}
 			if (!(value is double))
 			{
-				throw new ArgumentException("The value must be a 'double'.");
+				throw new ArgumentException("The value must be a 'double'.", "value");
 			}
 			return (double)value * 0.5;
 		}
@@ -55,11 +55,11 @@ namespace MyWpfConverters
 		{
 			if (targetType != typeof(Visibility))
 			{
-				throw new ArgumentException("The target must be a 'Visibility'.");
+				throw new ArgumentException("The target must be a 'Visibility'.", "targetType");
 			}
 			if (!(value is bool))
 			{
-				throw new ArgumentException("The value must be a 'bool'.");
+				throw new ArgumentException("The value must be a 'bool'.", "value");
 			}
 			var selected = (bool)value;
 
@@ -78,11 +78,11 @@ namespace MyWpfConverters
 		{
 			if (targetType != typeof(Visibility))
 			{
-				throw new ArgumentException("The target must be a 'Visibility'.");
+				throw new ArgumentException("The target must be a 'Visibility'.", "targetType");
 			}
 			if (!(value is bool?))
 			{
-				throw new ArgumentException("The value must be a 'bool?'.");
+				throw new ArgumentException("The value must be a 'bool?'.", "value");
 			}
 
 			var selected = (bool?)value;
@@ -123,6 +123,132 @@ namespace MyWpfConverters
 		}
 	}
 
+	public class Double4XYXYToLengthConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (values.Length == 4 &&
+				values[0] is double &&
+				values[1] is double &&
+				values[2] is double &&
+				values[3] is double)
+			{
+				var x0 = (double)values[0];
+				var y0 = (double)values[1];
+				var x1 = (double)values[2];
+				var y1 = (double)values[3];
+
+				// NaN は考慮しない。
+				var dx = x0 - x1;
+				var dy = y0 - y1;
+				return Math.Sqrt(dx * dx + dy * dy);
+			}
+
+			return DependencyProperty.UnsetValue;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
+	public class Double2XYToPointConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (values.Length == 2 &&
+				values[0] is double &&
+				values[1] is double)
+			{
+				var x = (double)values[0];
+				var y = (double)values[1];
+
+				return new Point(x, y);
+			}
+
+			return DependencyProperty.UnsetValue;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
+	public class Int2XYToPointConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (values.Length == 2 &&
+				values[0] is int &&
+				values[1] is int)
+			{
+				var x = (int)values[0];
+				var y = (int)values[1];
+
+				return new Point(x, y);
+			}
+
+			return DependencyProperty.UnsetValue;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
+	public class Int4XYXYToMeanPointConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (values.Length == 4 &&
+				values[0] is int &&
+				values[1] is int &&
+				values[2] is int &&
+				values[3] is int)
+			{
+				var x0 = (int)values[0];
+				var y0 = (int)values[1];
+				var x1 = (int)values[2];
+				var y1 = (int)values[3];
+
+				return new Point(0.5 * (x0 + x1), 0.5 * (y0 + y1));
+			}
+
+			return DependencyProperty.UnsetValue;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
+	public class Double2ToMeanDoubleConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (values.Length == 2 &&
+				values[0] is double &&
+				values[1] is double)
+			{
+				var v0 = (double)values[0];
+				var v1 = (double)values[1];
+
+				return 0.5 * (v0 + v1);
+			}
+
+			return DependencyProperty.UnsetValue;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
 	/// <summary>
 	/// RectangleGeometry.Rect には直接データ バインディングできないので、MultiBinding とコンバーターを経由する必要がある。
 	/// </summary>
@@ -153,6 +279,9 @@ namespace MyWpfConverters
 		}
 	}
 
+	/// <summary>
+	/// RectangleGeometry.Rect には直接データ バインディングできないので、MultiBinding とコンバーターを経由する必要がある。
+	/// </summary>
 	public class Double4CenterXYRadiusXYToRectConverter : IMultiValueConverter
 	{
 		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
@@ -177,6 +306,42 @@ namespace MyWpfConverters
 		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
 		{
 			throw new NotSupportedException();
+		}
+	}
+
+	/// <summary>
+	/// Viewbox 内で拡大縮小率によらず画面表示上の線幅などを一定に保つために利用する。
+	/// </summary>
+	public class DivideDoubleByScalingRatioConverter : IMultiValueConverter
+	{
+		public object Convert(object[] values, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (values.Length == 3 &&
+				values[0] is double &&
+				values[1] is double &&
+				values[2] is double)
+			{
+				var v0 = (double)values[0]; // Main source value
+				var v1 = (double)values[1]; // Original (non-scaled) size of UI element
+				var v2 = (double)values[2]; // Actual (scaled) size of UI element
+				// 初回表示の際に v2 はゼロになりうる。浮動小数点数のゼロ割の結果は Infinity や NaN になる。
+				// しかし、Infinity を TextBlock.FontSize にバインドすると、
+				// デバッグ セッションにて IDE 出力ウィンドウにエラーを示す診断メッセージが出力されてうっとうしい。
+				// かといって、Infinity の代わりにゼロを強制的に返すようにすると、
+				// 今度は TextBlock.FontSize や CenteredEllipse.RadiusX/RadiusY のバインドでエラーメッセージが出力されてしまう。
+				// FontSize は 0.0 を許可しているはずなのに……
+				// ここは異常値として DependencyProperty.UnsetValue を返すのが正解らしい。
+				if (Math.Abs(v2) > Double.Epsilon)
+				{
+					return v0 * (v1 / v2);
+				}
+			}
+			return DependencyProperty.UnsetValue;
+		}
+
+		public object[] ConvertBack(object value, Type[] targetTypes, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotImplementedException();
 		}
 	}
 }

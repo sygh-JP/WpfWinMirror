@@ -4,6 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:WpfWinMirror"
     xmlns:props="clr-namespace:WpfWinMirror.Properties"
+    xmlns:myctrls="clr-namespace:MyWpfCtrls;assembly=MyDotNetHelpers"
     Title="WPF WinMirror"
     Name="mainWnd"
     Width="525"
@@ -147,182 +148,6 @@
         <KeyBinding Key="Subtract" Command="{Binding DecreaseScaleFactorCommand}" />
     </Window.InputBindings>
 
-    <Window.ContextMenu>
-        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、少しだけ Mac OS X っぽくなる。 -->
-        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" Closed="mainContextMenu_Closed" FontFamily="Segoe UI SemiBold" FontSize="14">
-            <!-- MenuItem の IsCheckable="True" にすると、自動的に IsChecked プロパティがトグル動作するようになる。 -->
-            <MenuItem Name="menuItemTargetWindowRoot" Header="{x:Static props:Resources.menuItemTargetWindowRoot_Header}">
-            </MenuItem>
-            <Separator/>
-            <!-- エフェクト。 -->
-            <MenuItem Name="menuItemEffectRoot" Header="{x:Static props:Resources.menuItemEffectRoot_Header}">
-                <!-- エフェクトなし。 -->
-                <MenuItem Name="menuItemEffectNone" Header="{x:Static props:Resources.menuItemEffectNone_Header}"
-                          Click="menuItemEffectNone_Click"/>
-                <!-- グレースケール。 -->
-                <MenuItem Name="menuItemEffectGrayscale" Header="{x:Static props:Resources.menuItemEffectGrayscale_Header}"
-                          Click="menuItemEffectGrayscale_Click"/>
-                <!-- ネガポジ反転。 -->
-                <MenuItem Name="menuItemEffectNPInvert" Header="{x:Static props:Resources.menuItemEffectNPInvert_Header}"
-                          Click="menuItemEffectNPInvert_Click"/>
-                <!-- 暗さを不透明度に。 -->
-                <MenuItem Name="menuItemEffectDarknessToOpacity" Header="{x:Static props:Resources.menuItemEffectDarknessToOpacity_Header}"
-                          Click="menuItemEffectDarknessToOpacity_Click"/>
-                <!-- 明るさを不透明度に。 -->
-                <MenuItem Name="menuItemEffectBrightnessToOpacity" Header="{x:Static props:Resources.menuItemEffectBrightnessToOpacity_Header}"
-                          Click="menuItemEffectBrightnessToOpacity_Click"/>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemBackgroundPatternRoot" Header="{x:Static props:Resources.menuItemBackgroundPatternRoot_Header}">
-                <MenuItem Name="menuItemBackgroundPatternNone" Header="{x:Static props:Resources.menuItemBackgroundPatternNone_Header}"
-                          Click="menuItemBackgroundPatternNone_Click">
-                </MenuItem>
-                <MenuItem Name="menuItemBackgroundPatternBlack" Header="{x:Static props:Resources.menuItemBackgroundPatternBlack_Header}"
-                          Click="menuItemBackgroundPatternBlack_Click">
-                </MenuItem>
-                <MenuItem Name="menuItemBackgroundPatternGray" Header="{x:Static props:Resources.menuItemBackgroundPatternGray_Header}"
-                          Click="menuItemBackgroundPatternGray_Click">
-                </MenuItem>
-                <MenuItem Name="menuItemBackgroundPatternWhite" Header="{x:Static props:Resources.menuItemBackgroundPatternWhite_Header}"
-                          Click="menuItemBackgroundPatternWhite_Click">
-                </MenuItem>
-                <MenuItem Name="menuItemBackgroundPatternLattice" Header="{x:Static props:Resources.menuItemBackgroundPatternLattice_Header}"
-                          Click="menuItemBackgroundPatternLattice_Click">
-                </MenuItem>
-            </MenuItem>
-            <Separator/>
-            <!-- フレームレート。 -->
-            <MenuItem Name="menuItemFrameRateRoot" Header="{x:Static props:Resources.menuItemFrameRateRoot_Header}">
-                <MenuItem Name="menuItemFrameRateStop" Header="{x:Static props:Resources.menuItemFrameRateStop_Header}"
-                          Click="menuItemFrameRateStop_Click">
-                </MenuItem>
-                <MenuItem Name="menuItemFrameRate10fps" Header="_10 FPS"
-                          Click="menuItemFrameRate10fps_Click">
-                </MenuItem>
-                <MenuItem Name="menuItemFrameRate20fps" Header="_20 FPS"
-                          Click="menuItemFrameRate20fps_Click">
-                </MenuItem>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemTransparentMode" Header="{x:Static props:Resources.menuItemTransparentMode_Header}"
-                      InputGestureText="T"
-                      IsChecked="{Binding Path=PlacementTarget.DataContext.IsTransparentMode, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                      Command="{x:Static local:MainWindow.TransparentModeCommand}"/>
-            <!--
-            MenuItem に MenuItem 以外のコントロールを直接埋め込んだ場合でも、サブメニューが自動的にできるらしい。
-            ただし、その場合コンテキスト メニュー全体の幅がおかしくなる現象が発生する（サブメニューのある項目にマウスオーバーすると正常に戻る）。
-            なお、ContextMenu とそのホスト コントロール（PlacementTarget）間のバインディングは直接動作しない。
-            探索指定に若干の工夫が必要となる。
-            http://code.msdn.microsoft.com/windowsdesktop/ContextMenuBinding-e408506b
-            -->
-            <Separator/>
-            <MenuItem Name="menuItemOpacityRoot" Header="{x:Static props:Resources.menuItemOpacityRoot_Header}">
-                <DockPanel Visibility="Visible">
-                    <Slider
-                        LargeChange="0.2" SmallChange="0.1"
-                        Minimum="{Binding Path=PlacementTarget.DataContext.ImageOpacityMin, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                        Maximum="{Binding Path=PlacementTarget.DataContext.ImageOpacityMax, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                        Value="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                        Width="100" Margin="4,0" VerticalAlignment="Center"/>
-                    <TextBox
-                        Width="50"
-                         TextAlignment="Right"
-                         VerticalAlignment="Center" VerticalContentAlignment="Center"
-                         Text="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}"
-                         KeyDown="UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown">
-                        <TextBox.InputBindings>
-                            <!-- Adobe Photoshop のように、スピンコントロールは付けないが上下キーで増減する。 -->
-                            <!-- HACK: マウスホイールの上下にも対応したい。 -->
-                            <!-- できれば兄弟要素の Slider.IncreaseSmall や Slider.DecreaseSmall を発動させたいが…… -->
-                            <KeyBinding Key="Up" Command="{Binding IncreaseImageOpacityCommand}"/>
-                            <KeyBinding Key="Down" Command="{Binding DecreaseImageOpacityCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
-                </DockPanel>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemScaleFactorRoot" Header="{x:Static props:Resources.menuItemScaleFactorRoot_Header}">
-                <DockPanel Visibility="Visible">
-                    <Slider
-                        LargeChange="0.2" SmallChange="0.1"
-                        Minimum="{Binding Path=PlacementTarget.DataContext.ScaleFactorMin, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                        Maximum="{Binding Path=PlacementTarget.DataContext.ScaleFactorMax, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                        Value="{Binding Path=PlacementTarget.DataContext.ScaleFactor, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}"
-                        Width="100" Margin="4,0" VerticalAlignment="Center"/>
-                    <TextBox
-                        Width="50"
-                         TextAlignment="Right"
-                         VerticalAlignment="Center" VerticalContentAlignment="Center"
-                         Text="{Binding Path=PlacementTarget.DataContext.ScaleFactor, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}"
-                         KeyDown="UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown">
-                        <TextBox.InputBindings>
-                            <KeyBinding Key="Up" Command="{Binding IncreaseScaleFactorCommand}"/>
-                            <KeyBinding Key="Down" Command="{Binding DecreaseScaleFactorCommand}"/>
-                        </TextBox.InputBindings>
-                    </TextBox>
-                </DockPanel>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemHorizontalReverse" Header="{x:Static props:Resources.menuItemHorizontalReverse_Header}"
-                      InputGestureText="H"
-                      Command="{x:Static local:MainWindow.HorizontalReverseCommand}">
-                <MenuItem.Icon>
-                    <Grid>
-                        <Border Style="{StaticResource MenuItemIconBorderStyleKey}"/>
-                        <Image Source="./Resources/HorizontalSwap_16p.png" Width="16" Height="16"/>
-                    </Grid>
-                </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem Name="menuItemVerticalReverse" Header="{x:Static props:Resources.menuItemVerticalReverse_Header}"
-                      InputGestureText="V"
-                      Command="{x:Static local:MainWindow.VerticalReverseCommand}">
-                <MenuItem.Icon>
-                    <Grid>
-                        <Border Style="{StaticResource MenuItemIconBorderStyleKey}"/>
-                        <Image Source="./Resources/VerticalSwap_16p.png" Width="16" Height="16"/>
-                    </Grid>
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemSaveImageAs" Header="{x:Static props:Resources.menuItemSaveImageAs_Header}"
-                      Click="menuItemSaveImageAs_Click">
-                <MenuItem.Icon>
-                    <Image Source="./Resources/compactflash_16p.png" Width="16" Height="16"/>
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemLoadImage" Header="{x:Static props:Resources.menuItemLoadImage_Header}"
-                      Click="menuItemLoadImage_Click">
-                <MenuItem.Icon>
-                    <Image Source="./Resources/generic_picture_16p.png" Width="16" Height="16"/>
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemSavePresetRoot" Header="{x:Static props:Resources.menuItemSavePresetRoot_Header}"/>
-            <MenuItem Name="menuItemLoadPresetRoot" Header="{x:Static props:Resources.menuItemLoadPresetRoot_Header}"/>
-            <MenuItem Name="menuItemOpenSettingsIncludeDir" Header="{x:Static props:Resources.menuItemOpenSettingsIncludeDir_Header}"
-                      Command="{x:Static local:MainWindow.OpenSettingsIncludeDirCommand}">
-                <MenuItem.Icon>
-                    <Image Source="./Resources/FolderOpen_16p.png" Width="16" Height="16"/>
-                </MenuItem.Icon>
-            </MenuItem>
-            <Separator/>
-            <MenuItem Name="menuItemFitWindowToImage" Header="{x:Static props:Resources.menuItemFitWindowToImage_Header}"
-                      Click="menuItemFitWindowToImage_Click"/>
-            <MenuItem Name="menuItemReset" Header="{x:Static props:Resources.menuItemReset_Header}"
-                      Click="menuItemReset_Click"/>
-            <Separator/>
-            <MenuItem Name="menuItemAboutThisApp" Header="{x:Static props:Resources.menuItemAboutThisApp_Header}"
-                      Click="menuItemAboutThisApp_Click">
-                <MenuItem.Icon>
-                    <Image Source="./Resources/Annotations_Info_16p.png" Width="16" Height="16"/>
-                </MenuItem.Icon>
-            </MenuItem>
-            <MenuItem Name="menuItemAppClose" Header="{x:Static props:Resources.menuItemAppClose_Header}"
-                      InputGestureText="Alt+F4" Command="ApplicationCommands.Close"/>
-        </ContextMenu>
-    </Window.ContextMenu>
-
     <WindowChrome.WindowChrome>
         <WindowChrome CaptionHeight="{x:Static SystemParameters.CaptionHeight}"
                       ResizeBorderThickness="{x:Static SystemParameters.WindowResizeBorderThickness}"
@@ -455,40 +280,160 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" Background="DimGray">
                 <local:DropDownMenuButton x:Name="buttonBurger" Style="{DynamicResource CaptionButtonStyleKey}">
-                    <Grid IsHitTestVisible="False">
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="4"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="4"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
-                        <Line Grid.Row="0" Stroke="Gainsboro" SnapsToDevicePixels="True" StrokeThickness="2" X1="0" Y1="0" X2="16" Y2="0"/>
-                        <Line Grid.Row="2" Stroke="Gainsboro" SnapsToDevicePixels="True" StrokeThickness="2" X1="0" Y1="0" X2="16" Y2="0"/>
-                        <Line Grid.Row="4" Stroke="Gainsboro" SnapsToDevicePixels="True" StrokeThickness="2" X1="0" Y1="0" X2="16" Y2="0"/>
-                    </Grid>
+                    <local:DropDownMenuButton.DropDownContextMenu>
+                        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、少しだけ Mac OS X っぽくなる。 -->
+                        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" Closed="mainContextMenu_Closed" FontFamily="Segoe UI SemiBold" FontSize="14">
+                            <!-- MenuItem の IsCheckable="True" にすると、自動的に IsChecked プロパティがトグル動作するようになる。 -->
+                            <MenuItem Name="menuItemTargetWindowRoot" Header="{x:Static props:Resources.menuItemTargetWindowRoot_Header}">
+                            </MenuItem>
+                            <Separator/>
+                            <!-- エフェクト。 -->
+                            <MenuItem Name="menuItemEffectRoot" Header="{x:Static props:Resources.menuItemEffectRoot_Header}">
+                                <!-- エフェクトなし。 -->
+                                <MenuItem Name="menuItemEffectNone" Header="{x:Static props:Resources.menuItemEffectNone_Header}" Click="menuItemEffectNone_Click"/>
+                                <!-- グレースケール。 -->
+                                <MenuItem Name="menuItemEffectGrayscale" Header="{x:Static props:Resources.menuItemEffectGrayscale_Header}" Click="menuItemEffectGrayscale_Click"/>
+                                <!-- ネガポジ反転。 -->
+                                <MenuItem Name="menuItemEffectNPInvert" Header="{x:Static props:Resources.menuItemEffectNPInvert_Header}" Click="menuItemEffectNPInvert_Click"/>
+                                <!-- 暗さを不透明度に。 -->
+                                <MenuItem Name="menuItemEffectDarknessToOpacity" Header="{x:Static props:Resources.menuItemEffectDarknessToOpacity_Header}" Click="menuItemEffectDarknessToOpacity_Click"/>
+                                <!-- 明るさを不透明度に。 -->
+                                <MenuItem Name="menuItemEffectBrightnessToOpacity" Header="{x:Static props:Resources.menuItemEffectBrightnessToOpacity_Header}" Click="menuItemEffectBrightnessToOpacity_Click"/>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemBackgroundPatternRoot" Header="{x:Static props:Resources.menuItemBackgroundPatternRoot_Header}">
+                                <MenuItem Name="menuItemBackgroundPatternNone" Header="{x:Static props:Resources.menuItemBackgroundPatternNone_Header}" Click="menuItemBackgroundPatternNone_Click">
+                                </MenuItem>
+                                <MenuItem Name="menuItemBackgroundPatternBlack" Header="{x:Static props:Resources.menuItemBackgroundPatternBlack_Header}" Click="menuItemBackgroundPatternBlack_Click">
+                                </MenuItem>
+                                <MenuItem Name="menuItemBackgroundPatternGray" Header="{x:Static props:Resources.menuItemBackgroundPatternGray_Header}" Click="menuItemBackgroundPatternGray_Click">
+                                </MenuItem>
+                                <MenuItem Name="menuItemBackgroundPatternWhite" Header="{x:Static props:Resources.menuItemBackgroundPatternWhite_Header}" Click="menuItemBackgroundPatternWhite_Click">
+                                </MenuItem>
+                                <MenuItem Name="menuItemBackgroundPatternLattice" Header="{x:Static props:Resources.menuItemBackgroundPatternLattice_Header}" Click="menuItemBackgroundPatternLattice_Click">
+                                </MenuItem>
+                            </MenuItem>
+                            <Separator/>
+                            <!-- フレームレート。 -->
+                            <MenuItem Name="menuItemFrameRateRoot" Header="{x:Static props:Resources.menuItemFrameRateRoot_Header}">
+                                <MenuItem Name="menuItemFrameRateStop" Header="{x:Static props:Resources.menuItemFrameRateStop_Header}" Click="menuItemFrameRateStop_Click">
+                                </MenuItem>
+                                <MenuItem Name="menuItemFrameRate10fps" Header="_10 FPS" Click="menuItemFrameRate10fps_Click">
+                                </MenuItem>
+                                <MenuItem Name="menuItemFrameRate20fps" Header="_20 FPS" Click="menuItemFrameRate20fps_Click">
+                                </MenuItem>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemTransparentMode" Header="{x:Static props:Resources.menuItemTransparentMode_Header}" InputGestureText="T" IsChecked="{Binding Path=PlacementTarget.DataContext.IsTransparentMode, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Command="{x:Static local:MainWindow.TransparentModeCommand}"/>
+                            <!--
+                            MenuItem に MenuItem 以外のコントロールを直接埋め込んだ場合でも、サブメニューが自動的にできるらしい。
+                            ただし、その場合コンテキスト メニュー全体の幅がおかしくなる現象が発生する（サブメニューのある項目にマウスオーバーすると正常に戻る）。
+                            なお、ContextMenu とそのホスト コントロール（PlacementTarget）間のバインディングは直接動作しない。
+                            探索指定に若干の工夫が必要となる。
+                            http://code.msdn.microsoft.com/windowsdesktop/ContextMenuBinding-e408506b
+                            -->
+                            <Separator/>
+                            <MenuItem Name="menuItemOpacityRoot" Header="{x:Static props:Resources.menuItemOpacityRoot_Header}">
+                                <DockPanel Visibility="Visible">
+                                    <Slider LargeChange="0.2" SmallChange="0.1" Minimum="{Binding Path=PlacementTarget.DataContext.ImageOpacityMin, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Maximum="{Binding Path=PlacementTarget.DataContext.ImageOpacityMax, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Value="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Width="100" Margin="4,0" VerticalAlignment="Center"/>
+                                    <TextBox Width="50" TextAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Text="{Binding Path=PlacementTarget.DataContext.ImageOpacity, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}" KeyDown="UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown">
+                                        <TextBox.InputBindings>
+                                            <!-- Adobe Photoshop のように、スピンコントロールは付けないが上下キーで増減する。 -->
+                                            <!-- HACK: マウスホイールの上下にも対応したい。 -->
+                                            <!-- できれば兄弟要素の Slider.IncreaseSmall や Slider.DecreaseSmall を発動させたいが…… -->
+                                            <KeyBinding Key="Up" Command="{Binding IncreaseImageOpacityCommand}"/>
+                                            <KeyBinding Key="Down" Command="{Binding DecreaseImageOpacityCommand}"/>
+                                        </TextBox.InputBindings>
+                                    </TextBox>
+                                </DockPanel>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemScaleFactorRoot" Header="{x:Static props:Resources.menuItemScaleFactorRoot_Header}">
+                                <DockPanel Visibility="Visible">
+                                    <Slider LargeChange="0.2" SmallChange="0.1" Minimum="{Binding Path=PlacementTarget.DataContext.ScaleFactorMin, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Maximum="{Binding Path=PlacementTarget.DataContext.ScaleFactorMax, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Value="{Binding Path=PlacementTarget.DataContext.ScaleFactor, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}}" Width="100" Margin="4,0" VerticalAlignment="Center"/>
+                                    <TextBox Width="50" TextAlignment="Right" VerticalAlignment="Center" VerticalContentAlignment="Center" Text="{Binding Path=PlacementTarget.DataContext.ScaleFactor, RelativeSource={RelativeSource FindAncestor, AncestorType=ContextMenu}, Mode=TwoWay, UpdateSourceTrigger=Explicit, StringFormat=0.00}" KeyDown="UpdateTextBoxBindingSourceTargetOnEnterEscapeKeyDown">
+                                        <TextBox.InputBindings>
+                                            <KeyBinding Key="Up" Command="{Binding IncreaseScaleFactorCommand}"/>
+                                            <KeyBinding Key="Down" Command="{Binding DecreaseScaleFactorCommand}"/>
+                                        </TextBox.InputBindings>
+                                    </TextBox>
+                                </DockPanel>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemHorizontalReverse" Header="{x:Static props:Resources.menuItemHorizontalReverse_Header}" InputGestureText="H" Command="{x:Static local:MainWindow.HorizontalReverseCommand}">
+                                <MenuItem.Icon>
+                                    <Grid>
+                                        <Border Style="{StaticResource MenuItemIconBorderStyleKey}"/>
+                                        <Image Source="./Resources/HorizontalSwap_16p.png" Width="16" Height="16"/>
+                                    </Grid>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Name="menuItemVerticalReverse" Header="{x:Static props:Resources.menuItemVerticalReverse_Header}" InputGestureText="V" Command="{x:Static local:MainWindow.VerticalReverseCommand}">
+                                <MenuItem.Icon>
+                                    <Grid>
+                                        <Border Style="{StaticResource MenuItemIconBorderStyleKey}"/>
+                                        <Image Source="./Resources/VerticalSwap_16p.png" Width="16" Height="16"/>
+                                    </Grid>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemSaveImageAs" Header="{x:Static props:Resources.menuItemSaveImageAs_Header}" Click="menuItemSaveImageAs_Click">
+                                <MenuItem.Icon>
+                                    <Image Source="./Resources/compactflash_16p.png" Width="16" Height="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemLoadImage" Header="{x:Static props:Resources.menuItemLoadImage_Header}" Click="menuItemLoadImage_Click">
+                                <MenuItem.Icon>
+                                    <Image Source="./Resources/generic_picture_16p.png" Width="16" Height="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemSavePresetRoot" Header="{x:Static props:Resources.menuItemSavePresetRoot_Header}"/>
+                            <MenuItem Name="menuItemLoadPresetRoot" Header="{x:Static props:Resources.menuItemLoadPresetRoot_Header}"/>
+                            <MenuItem Name="menuItemOpenSettingsIncludeDir" Header="{x:Static props:Resources.menuItemOpenSettingsIncludeDir_Header}" Command="{x:Static local:MainWindow.OpenSettingsIncludeDirCommand}">
+                                <MenuItem.Icon>
+                                    <Image Source="./Resources/FolderOpen_16p.png" Width="16" Height="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemFitWindowToImage" Header="{x:Static props:Resources.menuItemFitWindowToImage_Header}" Click="menuItemFitWindowToImage_Click"/>
+                            <MenuItem Name="menuItemReset" Header="{x:Static props:Resources.menuItemReset_Header}" Click="menuItemReset_Click"/>
+                            <Separator/>
+                            <MenuItem Name="menuItemAboutThisApp" Header="{x:Static props:Resources.menuItemAboutThisApp_Header}" Click="menuItemAboutThisApp_Click">
+                                <MenuItem.Icon>
+                                    <Image Source="./Resources/Annotations_Info_16p.png" Width="16" Height="16"/>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Name="menuItemAppClose" Header="{x:Static props:Resources.menuItemAppClose_Header}" InputGestureText="Alt+F4" Command="ApplicationCommands.Close"/>
+                        </ContextMenu>
+                    </local:DropDownMenuButton.DropDownContextMenu>
+                    <myctrls:MetroIconBurger Foreground="Gainsboro"/>
                 </local:DropDownMenuButton>
             </Border>
-            <Border Grid.Column="1" IsHitTestVisible="False" HorizontalAlignment="Left">
-                <Label Content="WPF WinMirror"
-                       Padding="12,8,12,8"
-                       FontFamily="Segoe UI" FontSize="16"
-                       Foreground="Gainsboro" Background="DimGray" />
+            <Border Grid.Column="1" Background="DimGray" IsHitTestVisible="False">
+                <TextBlock Text="WPF WinMirror"
+                           VerticalAlignment="Center"
+                           Padding="12,8"
+                           FontFamily="Segoe UI" FontSize="16"
+                           Foreground="Gainsboro" />
             </Border>
-            <Border Grid.Column="2" IsHitTestVisible="False" HorizontalAlignment="Left" Visibility="{Binding TransparentModeHintVisibility}">
-                <Label Content="{x:Static props:Resources.TransparentMode}"
-                       VerticalContentAlignment="Center"
-                       FontFamily="Segoe UI" FontSize="12"
-                       Foreground="Gainsboro" Background="DimGray" />
+            <Border Grid.Column="2" Background="DimGray" IsHitTestVisible="False" Visibility="{Binding TransparentModeHintVisibility}">
+                <TextBlock Text="{x:Static props:Resources.TransparentMode}"
+                           VerticalAlignment="Center"
+                           Padding="4,0"
+                           FontFamily="Segoe UI" FontSize="12"
+                           Foreground="Gainsboro" />
             </Border>
 
-            <Border Grid.Column="3" HorizontalAlignment="Right">
-                <StackPanel Orientation="Horizontal" Background="DimGray" KeyboardNavigation.TabNavigation="None">
+            <Border Grid.Column="4" Background="DimGray">
+                <StackPanel Orientation="Horizontal" KeyboardNavigation.TabNavigation="None">
                     <Button Content="0" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonMinimize"
                     ToolTip="{x:Static props:Resources.buttonMinimize_ToolTip}" Click="buttonMinimize_Click"/>
                     <Button Content="1" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonMaximize"

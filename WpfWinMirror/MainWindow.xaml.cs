@@ -121,8 +121,8 @@ namespace WpfWinMirror
 			//this._effectTargetElement = this.gridForImage; // 残念ながら UCEERR_RENDERTHREADFAILURE によるクラッシュの原因となる。
 			this._baseElementForSelectRegionCalc = this;
 
-			this.ContextMenu = null;
-			this.buttonBurger.DropDownContextMenu = this.mainContextMenu;
+			//this.ContextMenu = null;
+			//this.buttonBurger.DropDownContextMenu = this.mainContextMenu;
 
 			// 起動直後に1回だけ設定するので、プロパティの変更に追従するわけではない。
 			this._customWinProc.MinWindowWidth = Double.IsNaN(this.MinWidth) ? 0 : (int)this.MinWidth;
@@ -271,7 +271,7 @@ namespace WpfWinMirror
 			this.BindWindowCaptureBitmap(this._currentTargetWinHandle);
 		}
 
-		void mainContextMenu_Loaded(object sender, RoutedEventArgs e)
+		void UpdateWindowList()
 		{
 			// ウィンドウがクローズされてハンドルが無効化されたときだけでなく、
 			// 新たに追加されたときどうするのか、という問題があるので、ウィンドウのリストはコンボ ボックスやリスト ビューでなく
@@ -311,6 +311,11 @@ namespace WpfWinMirror
 				// WindowInfo のコレクションを直接 MenuItem.ItemsSource にバインドすれば、Items は WindowInfo のコレクションになる。
 				//System.Diagnostics.Debug.WriteLine("Type of Item = " + item.GetType().Name);
 			}
+		}
+
+		private void mainContextMenu_Loaded(object sender, RoutedEventArgs e)
+		{
+			this.UpdateWindowList();
 
 			this.UpdateMenuCheckedState();
 

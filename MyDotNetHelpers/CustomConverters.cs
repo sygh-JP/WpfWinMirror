@@ -5,6 +5,9 @@ using System.Windows;
 
 namespace MyWpfConverters
 {
+	/// <summary>
+	/// 実際の入力には bool だけでなく bool? も使える。ただし出力は bool のみ。
+	/// </summary>
 	[ValueConversion(typeof(bool), typeof(bool))]
 	public class InverseBooleanConverter : IValueConverter
 	{
@@ -19,6 +22,31 @@ namespace MyWpfConverters
 				throw new ArgumentException("The value must be a 'bool'.", "value");
 			}
 			return !(bool)value;
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
+	/// <summary>
+	/// 入出力ともに bool? のみサポート。
+	/// </summary>
+	[ValueConversion(typeof(bool?), typeof(bool?))]
+	public class InverseNullableBooleanConverter : IValueConverter
+	{
+		public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (targetType != typeof(bool?))
+			{
+				throw new ArgumentException("The target must be a 'bool?'.", "targetType");
+			}
+			if (!(value is bool?))
+			{
+				throw new ArgumentException("The value must be a 'bool?'.", "value");
+			}
+			return !(bool?)value; // null は否定しても null のまま。
 		}
 
 		public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)

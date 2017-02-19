@@ -5,6 +5,65 @@ using System.Windows;
 
 namespace MyWpfConverters
 {
+	public class IntToBinaryStringConverter : IValueConverter
+	{
+		// 16進数は StringFormat でなんとかなるが、2進数は対応していないのが不便。
+		public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (!(parameter is string))
+			{
+				throw new ArgumentException("The parameter must be a 'string'.", "parameter");
+			}
+			int totalWidth = Int32.Parse((string)parameter);
+			if (value == null)
+			{
+				// Nullable は許可する。
+				return null;
+			}
+			else if (value is byte)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((byte)value, totalWidth);
+			}
+			else if (value is short)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((short)value, totalWidth);
+			}
+			else if (value is int)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((int)value, totalWidth);
+			}
+			else if (value is long)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((long)value, totalWidth);
+			}
+			else if (value is sbyte)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((sbyte)value, totalWidth);
+			}
+			else if (value is ushort)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((ushort)value, totalWidth);
+			}
+			else if (value is uint)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((uint)value, totalWidth);
+			}
+			else if (value is ulong)
+			{
+				return MyMiscHelpers.MyBitOpHelper.ConvertToBinaryDigitsString((ulong)value, totalWidth);
+			}
+			else
+			{
+				throw new ArgumentException("The value must be an integer.", "value");
+			}
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
 	/// <summary>
 	/// 実際の入力には bool だけでなく bool? も使える。ただし出力は bool のみ。
 	/// </summary>

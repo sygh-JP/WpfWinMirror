@@ -28,7 +28,7 @@
             </Border.Effect>
         </Border>
         <StackPanel Grid.Row="0" HorizontalAlignment="Right" Margin="8">
-            <Button Content="r" Style="{DynamicResource CaptionButtonStyleKey}" Name="buttonClose"
+            <Button Content="r" Style="{DynamicResource CaptionButtonStyleKey}" Foreground="Gainsboro" Name="buttonClose"
                     ToolTip="{x:Static props:Resources.buttonClose_ToolTip}" Click="buttonClose_Click"/>
         </StackPanel>
         <Grid Margin="30" >

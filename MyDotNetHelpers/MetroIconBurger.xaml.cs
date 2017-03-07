@@ -23,8 +23,6 @@ namespace MyWpfCtrls
 		public MetroIconBurger()
 		{
 			InitializeComponent();
-
-			this.Background = null;
 		}
 	}
 }

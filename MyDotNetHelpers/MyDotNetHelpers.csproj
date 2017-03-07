@@ -48,6 +48,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CustomConverters.cs" />
+    <Compile Include="DropDownMenuButton.cs" />
     <Compile Include="MetroIconBurger.xaml.cs">
       <DependentUpon>MetroIconBurger.xaml</DependentUpon>
     </Compile>

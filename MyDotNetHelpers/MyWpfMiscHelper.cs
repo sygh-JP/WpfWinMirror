@@ -132,24 +132,27 @@ namespace MyWpfHelpers
 	/// 状態の明示的保存や finally 節の明示的記述を不要とすることができる。
 	/// UI スレッドからのみ構築できることに注意。
 	/// </summary>
-	public class WaitCursor : IDisposable
+	public class WaitCursor : ScopedFrameworkElementCursor
+	{
+		// HACK: MFC 実装に近いのは、ScopedFrameworkElementCursor ではなく ScopedMouseOverrideCursor のほう？
+
+		public WaitCursor() : base(Application.Current.MainWindow, Cursors.Wait)
+		{
+		}
+	}
+
+	public class ScopedFrameworkElementCursor : IDisposable
 	{
 		Cursor _oldCursor;
 		FrameworkElement _targetElement;
 
-		public WaitCursor() : this(Application.Current.MainWindow)
-		{
-			// C++ では C++11 からサポートされる委譲コンストラクタ構文。
-			// C# では C# 1.0 時点ですでにサポートしていた。
-		}
-
-		public WaitCursor(FrameworkElement target)
+		public ScopedFrameworkElementCursor(FrameworkElement target, Cursor newCursor)
 		{
 			if (target != null)
 			{
 				this._targetElement = target;
 				this._oldCursor = target.Cursor;
-				target.Cursor = Cursors.Wait;
+				target.Cursor = newCursor;
 			}
 		}
 
@@ -163,6 +166,27 @@ namespace MyWpfHelpers
 				this._targetElement = null;
 				this._oldCursor = null;
 			}
+		}
+
+		#endregion
+	}
+
+	public class ScopedMouseOverrideCursor : IDisposable
+	{
+		Cursor _oldCursor;
+
+		public ScopedMouseOverrideCursor(Cursor newCursor)
+		{
+			this._oldCursor = Mouse.OverrideCursor;
+			Mouse.OverrideCursor = newCursor;
+		}
+
+		#region IDisposable
+
+		public void Dispose()
+		{
+			Mouse.OverrideCursor = this._oldCursor;
+			this._oldCursor = null;
 		}
 
 		#endregion

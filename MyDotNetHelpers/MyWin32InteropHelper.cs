@@ -31,9 +31,18 @@ namespace MyMiscHelpers
 		/// </summary>
 		public const int DefaultDpi = 96;
 
-		public static int PixelsPerInch(ScanOrientation orientation)
+		public static int GetDisplayPixelsPerInchX()
 		{
-			int capIndex = (orientation == ScanOrientation.Horizontal) ? Gdi32DllMethodsInvoker.LOGPIXELSX : Gdi32DllMethodsInvoker.LOGPIXELSY;
+			return GetDisplayPixelsPerInch(Gdi32DllMethodsInvoker.LOGPIXELSX);
+		}
+
+		public static int GetDisplayPixelsPerInchY()
+		{
+			return GetDisplayPixelsPerInch(Gdi32DllMethodsInvoker.LOGPIXELSY);
+		}
+
+		private static int GetDisplayPixelsPerInch(int capIndex)
+		{
 			using (var handle = Gdi32DllMethodsInvoker.CreateDC("DISPLAY"))
 			{
 				return (handle.IsInvalid ? DefaultDpi : Gdi32DllMethodsInvoker.GetDeviceCaps(handle, capIndex));
@@ -220,8 +229,8 @@ namespace MyMiscHelpers
 			// PixelsPerInch() ヘルパー メソッドを利用して、画面の DPI 設定を知ることができます。
 			// 指定された解像度のビットマップを作成する必要がある場合は、
 			// 指定の dpiX 値と dpiY 値を RenderTargetBitmap コンストラクタに直接送ってください。
-			double displayDpiX = (double)MyDeviceHelper.PixelsPerInch(MyDeviceHelper.ScanOrientation.Horizontal);
-			double displayDpiY = (double)MyDeviceHelper.PixelsPerInch(MyDeviceHelper.ScanOrientation.Vertical);
+			double displayDpiX = MyDeviceHelper.GetDisplayPixelsPerInchX();
+			double displayDpiY = MyDeviceHelper.GetDisplayPixelsPerInchY();
 			int roundedImgWidth = (int)Math.Ceiling(outputImageWidth);
 			int roundedImgHeight = (int)Math.Ceiling(outputImageHeight);
 			var bmp = new System.Windows.Media.Imaging.RenderTargetBitmap(
@@ -249,6 +258,20 @@ namespace MyMiscHelpers
 			}
 
 			return bmp;
+		}
+
+		public static System.Windows.Vector GetDpiScaleFactor(System.Windows.Media.Visual visual)
+		{
+			// http://grabacr.net/archives/1105
+			var source = System.Windows.PresentationSource.FromVisual(visual);
+			if (source != null && source.CompositionTarget != null)
+			{
+				return new System.Windows.Vector(
+					source.CompositionTarget.TransformToDevice.M11,
+					source.CompositionTarget.TransformToDevice.M22);
+			}
+
+			return new System.Windows.Vector(1.0, 1.0);
 		}
 	}
 

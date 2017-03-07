@@ -17,6 +17,8 @@
     Background="Transparent"
     RenderOptions.ClearTypeHint="Enabled"
     Topmost="True"
+    UseLayoutRounding="True"
+    SnapsToDevicePixels="True"
     Loaded="Window_Loaded"
     Closing="Window_Closing"
     Closed="Window_Closed"
@@ -285,10 +287,10 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <Border Grid.Column="0" Background="DimGray">
-                <local:DropDownMenuButton x:Name="buttonBurger" Style="{DynamicResource CaptionButtonStyleKey}">
-                    <local:DropDownMenuButton.DropDownContextMenu>
-                        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、少しだけ Mac OS X っぽくなる。 -->
-                        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" Closed="mainContextMenu_Closed" FontFamily="Segoe UI SemiBold" FontSize="14">
+                <myctrls:DropDownMenuButton x:Name="buttonBurger" Style="{DynamicResource CaptionButtonStyleKey}">
+                    <myctrls:DropDownMenuButton.DropDownContextMenu>
+                        <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、96 DPI 環境下でも文字がハッキリして、少しだけ Mac OS X っぽくなる。ただし、Windows 10 上では、Segoe UI は Yu Gothic UI と合成されるが、この合成フォントに対して Bold/SemiBold を適用するとかなり見た目がひどくなる。 -->
+                        <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" Closed="mainContextMenu_Closed" FontFamily="Segoe UI" FontSize="14">
                             <!-- MenuItem の IsCheckable="True" にすると、自動的に IsChecked プロパティがトグル動作するようになる。 -->
                             <MenuItem Name="menuItemTargetWindowRoot" Header="{x:Static props:Resources.menuItemTargetWindowRoot_Header}">
                             </MenuItem>
@@ -413,9 +415,9 @@
                             </MenuItem>
                             <MenuItem Name="menuItemAppClose" Header="{x:Static props:Resources.menuItemAppClose_Header}" InputGestureText="Alt+F4" Command="ApplicationCommands.Close"/>
                         </ContextMenu>
-                    </local:DropDownMenuButton.DropDownContextMenu>
+                    </myctrls:DropDownMenuButton.DropDownContextMenu>
                     <myctrls:MetroIconBurger Foreground="Gainsboro"/>
-                </local:DropDownMenuButton>
+                </myctrls:DropDownMenuButton>
             </Border>
             <Border Grid.Column="1" Background="DimGray" IsHitTestVisible="False">
                 <TextBlock Text="WPF WinMirror"

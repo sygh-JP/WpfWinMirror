@@ -101,7 +101,7 @@ namespace MyBindingHelpers
 		/// <param name="parameter"></param>
 		public void Execute(object parameter)
 		{
-			var handler = ExecuteHandler;
+			var handler = this.ExecuteHandler;
 			if (handler != null)
 			{
 				handler(parameter);
@@ -115,13 +115,14 @@ namespace MyBindingHelpers
 		/// <returns></returns>
 		public bool CanExecute(object parameter)
 		{
-			var handler = CanExecuteHandler;
+			var handler = this.CanExecuteHandler;
 			if (handler != null)
 			{
 				return handler(parameter);
 			}
 			else
 			{
+				// デリゲートがひとつも割り当てられていない場合は、既定で有効とする。
 				return true;
 			}
 		}
@@ -131,7 +132,7 @@ namespace MyBindingHelpers
 		/// </summary>
 		public void RaiseCanExecuteChanged()
 		{
-			CanExecuteChanged(this, null);
+			this.CanExecuteChanged(this, null);
 		}
 	}
 

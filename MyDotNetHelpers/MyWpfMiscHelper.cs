@@ -135,6 +135,7 @@ namespace MyWpfHelpers
 	public class WaitCursor : ScopedFrameworkElementCursor
 	{
 		// HACK: MFC 実装に近いのは、ScopedFrameworkElementCursor ではなく ScopedMouseOverrideCursor のほう？
+		// HACK: Application.Current.MainWindow 前提なので、サブウィンドウでは使えない。
 
 		public WaitCursor() : base(Application.Current.MainWindow, Cursors.Wait)
 		{
@@ -174,6 +175,12 @@ namespace MyWpfHelpers
 	public class ScopedMouseOverrideCursor : IDisposable
 	{
 		Cursor _oldCursor;
+
+		// Mouse.OverrideCursor の既定値は null らしい。
+		// ステートを復元する際、Mouse.OverrideCursor を Cursors.Arrow に設定するのはダメ。
+		// その後すべてのカーソルが常に Arrow になってしまい、FrameworkElement.Cursor が効かなくなる。
+		// HACK: Mouse.OverrideCursor はアプリケーション グローバルなステートなので、複数の非同期処理の完了を別々に待機する場合には
+		// 安易にこのクラスを使ってステートをキャッシュ＆レストアしてはいけない。
 
 		public ScopedMouseOverrideCursor(Cursor newCursor)
 		{

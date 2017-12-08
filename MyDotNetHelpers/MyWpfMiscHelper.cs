@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
+//using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 
@@ -125,78 +125,6 @@ namespace MyWpfHelpers
 				new FrameworkPropertyMetadata(TextHintingMode.Animated,
 					FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.Inherits));
 		}
-	}
-
-	/// <summary>
-	/// MFC の CWaitCursor に似た機能を提供する。
-	/// 状態の明示的保存や finally 節の明示的記述を不要とすることができる。
-	/// UI スレッドからのみ構築できることに注意。
-	/// </summary>
-	public class WaitCursor : ScopedFrameworkElementCursor
-	{
-		// HACK: MFC 実装に近いのは、ScopedFrameworkElementCursor ではなく ScopedMouseOverrideCursor のほう？
-		// HACK: Application.Current.MainWindow 前提なので、サブウィンドウでは使えない。
-
-		public WaitCursor() : base(Application.Current.MainWindow, Cursors.Wait)
-		{
-		}
-	}
-
-	public class ScopedFrameworkElementCursor : IDisposable
-	{
-		Cursor _oldCursor;
-		FrameworkElement _targetElement;
-
-		public ScopedFrameworkElementCursor(FrameworkElement target, Cursor newCursor)
-		{
-			if (target != null)
-			{
-				this._targetElement = target;
-				this._oldCursor = target.Cursor;
-				target.Cursor = newCursor;
-			}
-		}
-
-		#region IDisposable
-
-		public void Dispose()
-		{
-			if (this._targetElement != null)
-			{
-				this._targetElement.Cursor = this._oldCursor;
-				this._targetElement = null;
-				this._oldCursor = null;
-			}
-		}
-
-		#endregion
-	}
-
-	public class ScopedMouseOverrideCursor : IDisposable
-	{
-		Cursor _oldCursor;
-
-		// Mouse.OverrideCursor の既定値は null らしい。
-		// ステートを復元する際、Mouse.OverrideCursor を Cursors.Arrow に設定するのはダメ。
-		// その後すべてのカーソルが常に Arrow になってしまい、FrameworkElement.Cursor が効かなくなる。
-		// HACK: Mouse.OverrideCursor はアプリケーション グローバルなステートなので、複数の非同期処理の完了を別々に待機する場合には
-		// 安易にこのクラスを使ってステートをキャッシュ＆レストアしてはいけない。
-
-		public ScopedMouseOverrideCursor(Cursor newCursor)
-		{
-			this._oldCursor = Mouse.OverrideCursor;
-			Mouse.OverrideCursor = newCursor;
-		}
-
-		#region IDisposable
-
-		public void Dispose()
-		{
-			Mouse.OverrideCursor = this._oldCursor;
-			this._oldCursor = null;
-		}
-
-		#endregion
 	}
 
 	namespace ViewModels

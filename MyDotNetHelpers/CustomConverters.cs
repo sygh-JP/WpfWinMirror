@@ -5,6 +5,28 @@ using System.Windows;
 
 namespace MyWpfConverters
 {
+	/// <summary>
+	/// カスタム定義クラスをバインディングに使うためのコンバーター。組み込み型や enum を除いて、WPF はオーバーライドされた Object.ToString() を自動で呼んでくれるようなことはないらしい。
+	/// カスタム定義クラスで System.IFormattable を実装すればコンバーターを使う必要はなくなるかもしれないが、手間がかかる。
+	/// WPF does not support any standard helper interface such as Windows.Foundation.IStringable or Windows.UI.Xaml.Data.ICustomPropertyProvider in WinRT.
+	/// </summary>
+	public class ObjectToStringConverter : IValueConverter
+	{
+		public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			if (value == null)
+			{
+				return null;
+			}
+			return value.ToString();
+		}
+
+		public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+		{
+			throw new NotSupportedException();
+		}
+	}
+
 	public class IntToBinaryStringConverter : IValueConverter
 	{
 		// 16進数は StringFormat でなんとかなるが、2進数は対応していないのが不便。

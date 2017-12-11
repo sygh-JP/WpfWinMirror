@@ -29,34 +29,6 @@ namespace MyWpfHelpers
 		}
 	}
 
-	public static class MyWpfWindowHelper
-	{
-		public static void UnminimizeWindow(System.Windows.Window window)
-		{
-			// ウィンドウが最小化されていたら復元する。ただし、WindowState を Normal に戻すだけではダメ。
-			// 最大化されていた場合に対処できない。やはりここでも P/Invoke が要る。
-			if (window.WindowState == System.Windows.WindowState.Minimized)
-			{
-				//var hwnd = (System.Windows.Interop.HwndSource.FromVisual(window) as System.Windows.Interop.HwndSource).Handle;
-				var hwnd = new System.Windows.Interop.WindowInteropHelper(window).Handle;
-				MyMiscHelpers.User32DllMethodsInvoker.ShowWindow(hwnd, MyMiscHelpers.User32DllMethodsInvoker.CommandOfShowWindow.SW_RESTORE);
-			}
-		}
-
-		public static void ClampWindowSizeByDesktopWorkArea(System.Windows.Window window)
-		{
-			var workAreaRect = System.Windows.SystemParameters.WorkArea;
-			if (workAreaRect.Width < window.Width)
-			{
-				window.Width = workAreaRect.Width;
-			}
-			if (workAreaRect.Height < window.Height)
-			{
-				window.Height = workAreaRect.Height;
-			}
-		}
-	}
-
 	public static class MyWpfImageHelper
 	{
 		public static WriteableBitmap CreateBitmapFromSharableFileStream(string filePath, bool freezesBitmap, BitmapCreateOptions createOptions, BitmapCacheOption cacheOption, PixelFormat? newPixelFormat = null)

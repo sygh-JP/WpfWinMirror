@@ -183,27 +183,30 @@ namespace MyMiscHelpers
 
 		protected virtual void OnDispose(bool disposesManagedResources)
 		{
-			// よくある IDisposable 実装のサンプルからパクってきたメソッド実装コードだが、
+			// よくある IDisposable 実装のサンプルでは、
+			// protected virtual void Dispose(bool dispose) もしくは
+			// protected virtual void Dispose(bool disposing) と宣言されている。
+			// https://msdn.microsoft.com/en-us/library/fs2xkftw.aspx
 			// protected virtual な仮想メソッドを定義しているのは、
 			// 派生クラスでもリソースを追加管理するようなときに備えるためらしい。
-			// 派生クラスでオーバーライドする際には、基底クラスの OnDispose(bool) をきちんと呼び出すようにすればよい。
+			// この場合、派生クラスでオーバーライドする際には、base 経由で基底クラスの Dispose(bool) をきちんと呼び出すようにすればよいが、ややこしい。
 
 			lock (this)
 			{
 				if (this.isDisposed)
 				{
-					// 既に呼びだし済みであるならば何もしない。
+					// 既に呼び出し済みであるならば何もしない。
 					return;
 				}
 
 				if (disposesManagedResources)
 				{
-					// マネージ リソースの解放。
+					// TODO: IDisposable 実装クラスなどのマネージ リソースの解放はココで行なう。
 					MyGenericsHelper.SafeDispose(ref this.gdipBitmap);
 					this.wicBitmap = null;
 				}
 
-				// TODO: IntPtr 経由などのアンマネージ リソースの解放はココで行なう。
+				// TODO: IntPtr ハンドルなどのアンマネージ リソースの解放はココで行なう。
 
 				this.isDisposed = true;
 			}

@@ -567,7 +567,7 @@ namespace MyMiscHelpers
 		#region Win32/Win64 Compatible
 		public static IntPtr GetWindowLongPtr(IntPtr hWnd, Int32 index)
 		{
-			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
+			if (IntPtr.Size == sizeof(Int32))
 			{
 				// Win32
 				return new IntPtr(User32DllMethodsInvoker.GetWindowLong(hWnd, index));
@@ -581,7 +581,7 @@ namespace MyMiscHelpers
 
 		public static IntPtr SetWindowLongPtr(IntPtr hWnd, Int32 index, IntPtr newStyle)
 		{
-			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
+			if (IntPtr.Size == sizeof(Int32))
 			{
 				// Win32
 				return new IntPtr(User32DllMethodsInvoker.SetWindowLong(hWnd, index, newStyle.ToInt32()));
@@ -595,7 +595,7 @@ namespace MyMiscHelpers
 
 		public static IntPtr GetClassLongPtr(IntPtr hWnd, Int32 index)
 		{
-			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
+			if (IntPtr.Size == sizeof(Int32))
 			{
 				// Win32
 				return new IntPtr((int)User32DllMethodsInvoker.GetClassLong(hWnd, index));
@@ -609,7 +609,7 @@ namespace MyMiscHelpers
 
 		public static IntPtr SetClassLongPtr(IntPtr hWnd, Int32 index, IntPtr newLong)
 		{
-			if (System.Runtime.InteropServices.Marshal.SizeOf(typeof(IntPtr)) == sizeof(Int32))
+			if (IntPtr.Size == sizeof(Int32))
 			{
 				// Win32
 				return new IntPtr((int)User32DllMethodsInvoker.SetClassLong(hWnd, index, newLong.ToInt32()));

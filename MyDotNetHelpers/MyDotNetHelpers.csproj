@@ -53,6 +53,7 @@
       <DependentUpon>MetroIconBurger.xaml</DependentUpon>
     </Compile>
     <Compile Include="MyBindingHelper.cs" />
+    <Compile Include="MyDisposableBase.cs" />
     <Compile Include="MyGenericsHelper.cs" />
     <Compile Include="MyWin32PInvokeHelper.cs" />
     <Compile Include="MyWindowCaptureBuffer.cs" />

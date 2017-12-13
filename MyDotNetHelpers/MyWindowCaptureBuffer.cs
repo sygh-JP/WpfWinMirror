@@ -146,17 +146,13 @@ namespace MyMiscHelpers
 	// HACK: DPI の変更（論理ピクセル サイズの変更）に対応する必要はあるか？
 	// なお、WIC ビットマップのほうは明示的に解放する手段がないが、念のため GC を強制起動しておいたほうがいいかもしれない。
 	// もういっそ MFC or WTL + Direct2D 1.1 でネイティブ実装したほうがリソース管理は楽になる気もするが、
-	// レイヤード ウィンドウまわりの実装が恐ろしくダルい……
+	// WPF と比べてレイヤード ウィンドウまわりの実装が恐ろしくダルい……
 
-	// HACK: MyDisposableBase を使って共通コードの実装を省略する。
-
-	public class MyWindowCaptureBuffer : IDisposable
+	public class MyWindowCaptureBuffer : MyMiscHelpers.MyDisposableBase
 	{
 		System.Windows.Media.Imaging.WriteableBitmap wicBitmap;
 		// GDI+.NET の Bitmap は IDisposable 実装だが、WIC の WriteableBitmap はそうではない。
 		System.Drawing.Bitmap gdipBitmap;
-
-		bool isDisposed = false;
 
 		public System.Windows.Media.Imaging.WriteableBitmap CapturedImage { get { return this.wicBitmap; } }
 
@@ -175,61 +171,16 @@ namespace MyMiscHelpers
 			this.gdipBitmap = new System.Drawing.Bitmap(pixelWidth, pixelHeight, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
 		}
 
-		~MyWindowCaptureBuffer()
+		protected override sealed void OnDisposeManagedResources()
 		{
-			// リソースの解放。
-			this.OnDispose(false);
+			// マネージ リソースの解放。
+			MyGenericsHelper.SafeDispose(ref this.gdipBitmap);
+			this.wicBitmap = null;
 		}
 
-		protected virtual void OnDispose(bool disposesManagedResources)
+		protected override sealed void OnDisposeUnmamagedResources()
 		{
-			// よくある IDisposable 実装のサンプルでは、
-			// protected virtual void Dispose(bool dispose) もしくは
-			// protected virtual void Dispose(bool disposing) と宣言されている。
-			// https://msdn.microsoft.com/en-us/library/fs2xkftw.aspx
-			// protected virtual な仮想メソッドを定義しているのは、
-			// 派生クラスでもリソースを追加管理するようなときに備えるためらしい。
-			// この場合、派生クラスでオーバーライドする際には、base 経由で基底クラスの Dispose(bool) をきちんと呼び出すようにすればよいが、ややこしい。
-
-			lock (this)
-			{
-				if (this.isDisposed)
-				{
-					// 既に呼び出し済みであるならば何もしない。
-					return;
-				}
-
-				if (disposesManagedResources)
-				{
-					// TODO: IDisposable 実装クラスなどのマネージ リソースの解放はココで行なう。
-					MyGenericsHelper.SafeDispose(ref this.gdipBitmap);
-					this.wicBitmap = null;
-				}
-
-				// TODO: IntPtr ハンドルなどのアンマネージ リソースの解放はココで行なう。
-
-				this.isDisposed = true;
-			}
-		}
-
-		protected void ThrowExceptionIfDisposed()
-		{
-			if (this.isDisposed)
-			{
-				throw new ObjectDisposedException(this.GetType().ToString());
-			}
-		}
-
-		/// <summary>
-		/// IDisposable.Dispose() の実装。
-		/// </summary>
-		public void Dispose()
-		{
-			// リソースの解放。
-			this.OnDispose(true);
-
-			// このオブジェクトのデストラクタを GC 対象外とする。
-			GC.SuppressFinalize(this);
+			// 空の実装。
 		}
 
 		public bool CaptureWindow(IntPtr hwnd, System.Windows.Int32Rect clippingRect)

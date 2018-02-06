@@ -98,27 +98,4 @@ namespace MyWpfHelpers
 					FrameworkPropertyMetadataOptions.AffectsMeasure | FrameworkPropertyMetadataOptions.AffectsRender | FrameworkPropertyMetadataOptions.Inherits));
 		}
 	}
-
-	namespace ViewModels
-	{
-		/// <summary>
-		/// カルチャー名だけを管理する。
-		/// </summary>
-		public class MySimpleLanguageManager : MyBindingHelpers.MyNotifyPropertyChangedBase
-		{
-			public const string DefaultCultureName = "<Default>";
-
-			string _cultureName = DefaultCultureName;
-
-			public string CultureName
-			{
-				get { return this._cultureName; }
-				set
-				{
-					// HACK: カルチャー名の正当性判定をここで実装する？
-					base.SetSingleProperty(ref this._cultureName, String.IsNullOrEmpty(value) ? DefaultCultureName : value);
-				}
-			}
-		}
-	}
 }

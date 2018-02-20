@@ -1116,17 +1116,20 @@ namespace WpfWinMirror
 
 		private void buttonMinimize_Click(object sender, RoutedEventArgs e)
 		{
-			this.WindowState = System.Windows.WindowState.Minimized;
+			SystemCommands.MinimizeWindow(this);
+			//this.WindowState = System.Windows.WindowState.Minimized;
 		}
 
 		private void buttonMaximize_Click(object sender, RoutedEventArgs e)
 		{
-			this.WindowState = System.Windows.WindowState.Maximized;
+			SystemCommands.MaximizeWindow(this);
+			//this.WindowState = System.Windows.WindowState.Maximized;
 		}
 
 		private void buttonRestore_Click(object sender, RoutedEventArgs e)
 		{
-			this.WindowState = System.Windows.WindowState.Normal;
+			SystemCommands.RestoreWindow(this);
+			//this.WindowState = System.Windows.WindowState.Normal;
 		}
 
 		private void menuItemFitWindowToImage_Click(object sender, RoutedEventArgs e)

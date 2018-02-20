@@ -12,6 +12,7 @@ namespace MyMiscHelpers
 	public abstract class MyDisposableBase : IDisposable
 	{
 		private bool isDisposed = false;
+		private readonly object lockObj = new object();
 
 		~MyDisposableBase()
 		{
@@ -40,7 +41,7 @@ namespace MyMiscHelpers
 			// 「C++ Coding Standards」項目39「仮想関数を非 public に、public 関数を非仮想にすることを検討しよう」や、
 			// 「Effective C++ 第3版」第6章35項「仮想関数の代わりになるものを考えよう」を参照のこと。
 
-			lock (this)
+			lock (this.lockObj)
 			{
 				if (this.isDisposed)
 				{

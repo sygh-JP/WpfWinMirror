@@ -30,6 +30,7 @@ using System.Windows.Threading;
 
 namespace WpfWinMirror
 {
+	using ThisAppSettings = global::WpfWinMirror.Properties.Settings;
 	using ThisAppResources = global::WpfWinMirror.Properties.Resources;
 
 	/// <summary>
@@ -899,7 +900,7 @@ namespace WpfWinMirror
 
 		void LoadSettings()
 		{
-			var settings = global::WpfWinMirror.Properties.Settings.Default;
+			var settings = ThisAppSettings.Default;
 			this.SetWindowBounds(settings.LastWindowBounds);
 			if (settings.IsMainWindowMaximized)
 			{
@@ -925,7 +926,7 @@ namespace WpfWinMirror
 			// 設定は非ローミング ユーザー（ローカル）のアプリケーション データ フォルダー（%LocalAppData%）に、
 			// user.config という名前の XML ファイルとして保存される。
 
-			var settings = global::WpfWinMirror.Properties.Settings.Default;
+			var settings = ThisAppSettings.Default;
 			//settings.IsMainWindowMaximized = MyMiscHelpers.MyWin32InteropHelper.HasWindowStyleMaximize(this);
 			settings.IsMainWindowMaximized = (this.WindowState == System.Windows.WindowState.Maximized);
 			settings.LastWindowBounds = this.GetWindowBounds();

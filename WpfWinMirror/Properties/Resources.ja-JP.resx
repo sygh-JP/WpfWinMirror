@@ -231,4 +231,7 @@
   <data name="menuItemBackgroundPatternWhite_Header" xml:space="preserve">
     <value>白(_W)</value>
   </data>
+  <data name="menuItemSaveWinListAs_Header" xml:space="preserve">
+    <value>ウィンドウ リストに名前を付けて保存...</value>
+  </data>
 </root>

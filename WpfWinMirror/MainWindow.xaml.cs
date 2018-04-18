@@ -249,6 +249,14 @@ namespace WpfWinMirror
 			return new System.Windows.Interop.WindowInteropHelper(this).Handle;
 		}
 
+		static System.Diagnostics.Process OpenByExplorer(string path)
+		{
+			return System.Diagnostics.Process.Start("explorer.exe", @"/select," + path);
+		}
+
+		// HACK: .NET Framework が標準で用意している設定ファイル システムは、利点よりも欠点が多い。
+		// XmlSerializer などを明示的に使って、独自の設定ファイルの読み書きを実装したほうがよい。
+
 		static System.Configuration.Configuration GetUserConfig()
 		{
 			return System.Configuration.ConfigurationManager.OpenExeConfiguration(
@@ -311,6 +319,30 @@ namespace WpfWinMirror
 			{
 				// WindowInfo のコレクションを直接 MenuItem.ItemsSource にバインドすれば、Items は WindowInfo のコレクションになる。
 				//System.Diagnostics.Debug.WriteLine("Type of Item = " + item.GetType().Name);
+			}
+		}
+
+		void SaveWindowListToFile(string filePath)
+		{
+			var winHandleList = MyMiscHelpers.MyWin32InteropHelper.EnumVisibleWindows();
+
+			using (var fs = new System.IO.FileStream(filePath, System.IO.FileMode.Create, System.IO.FileAccess.Write))
+			{
+				using (var sw = new System.IO.StreamWriter(fs, Encoding.UTF8))
+				{
+					foreach (var hwnd in winHandleList)
+					{
+						// 自分自身は除外。
+						if (hwnd == this.GetWindowHandle())
+						{
+							continue;
+						}
+
+						var title = WindowInfo.CreateMenuTextForWindow(hwnd);
+
+						sw.WriteLine(title);
+					}
+				}
 			}
 		}
 
@@ -648,11 +680,11 @@ namespace WpfWinMirror
 			var config = GetUserConfig();
 			if (System.IO.File.Exists(config.FilePath))
 			{
-				System.Diagnostics.Process.Start("explorer.exe", @"/select," + config.FilePath);
+				OpenByExplorer(config.FilePath);
 			}
 			else
 			{
-				MessageBox.Show("Failed to find the settings file of this application!!", AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(this, "Failed to find the settings file of this application!!", AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -991,6 +1023,27 @@ namespace WpfWinMirror
 			this._customWinProc.DetachCustomWndProc();
 		}
 
+		private void menuItemSaveWinListAs_Click(object sender, RoutedEventArgs e)
+		{
+			try
+			{
+				var fileDlg = new Microsoft.Win32.SaveFileDialog();
+				fileDlg.FileName = "WpfWinMirrorList.txt";
+				fileDlg.DefaultExt = ".txt";
+				fileDlg.Filter = "Text Files|*.txt";
+
+				var result = fileDlg.ShowDialog();
+				if (result == true)
+				{
+					this.SaveWindowListToFile(fileDlg.FileName);
+				}
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show(this, ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+			}
+		}
+
 		private void menuItemSaveImageAs_Click(object sender, RoutedEventArgs e)
 		{
 			// モーダル ダイアログを表示している間もメッセージ ループは回っているため、キャプチャ画像の更新は行なわれる。
@@ -1015,7 +1068,7 @@ namespace WpfWinMirror
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(this, ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -1044,7 +1097,7 @@ namespace WpfWinMirror
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(this, ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -1060,7 +1113,7 @@ namespace WpfWinMirror
 			{
 				// HACK: ウィンドウをキャプチャしていなかったときは別途分かりやすいエラーメッセージを出すとよいかも。
 				System.Diagnostics.Debug.WriteLine(ex.Message);
-				MessageBox.Show(ThisAppResources.ErrMsgFailedToSaveImage + "\n\n" + ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(this, ThisAppResources.ErrMsgFailedToSaveImage + "\n\n" + ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 
@@ -1073,7 +1126,7 @@ namespace WpfWinMirror
 			catch (Exception ex)
 			{
 				System.Diagnostics.Debug.WriteLine(ex.Message);
-				MessageBox.Show(ThisAppResources.ErrMsgFailedToLoadImage + "\n\n" + ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
+				MessageBox.Show(this, ThisAppResources.ErrMsgFailedToLoadImage + "\n\n" + ex.Message, AppTitle, MessageBoxButton.OK, MessageBoxImage.Error);
 			}
 		}
 

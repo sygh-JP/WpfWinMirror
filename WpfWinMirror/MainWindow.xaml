@@ -289,6 +289,7 @@
             <Border Grid.Column="0" Background="DimGray">
                 <myctrls:DropDownMenuButton x:Name="buttonBurger" Style="{DynamicResource CaptionButtonStyleKey}">
                     <myctrls:DropDownMenuButton.DropDownContextMenu>
+                        <!-- HACK: ラスター画像でアイコンを指定しているが、高 DPI 環境だとぼやける。ベクトル画像のほうが好ましい。 -->
                         <!-- Segoe UI SemiBold + 大きめのサイズに設定しておくと、96 DPI 環境下でも文字がハッキリして、少しだけ Mac OS X っぽくなる。ただし、Windows 10 上では、Segoe UI は Yu Gothic UI と合成されるが、この合成フォントに対して Bold/SemiBold を適用するとかなり見た目がひどくなる。 -->
                         <ContextMenu Name="mainContextMenu" Loaded="mainContextMenu_Loaded" Closed="mainContextMenu_Closed" FontFamily="Segoe UI" FontSize="14">
                             <!-- MenuItem の IsCheckable="True" にすると、自動的に IsChecked プロパティがトグル動作するようになる。 -->
@@ -382,6 +383,12 @@
                                         <Border Style="{StaticResource MenuItemIconBorderStyleKey}"/>
                                         <Image Source="./Resources/VerticalSwap_16p.png" Width="16" Height="16"/>
                                     </Grid>
+                                </MenuItem.Icon>
+                            </MenuItem>
+                            <Separator/>
+                            <MenuItem Name="menuItemSaveWinListAs" Header="{x:Static props:Resources.menuItemSaveWinListAs_Header}" Click="menuItemSaveWinListAs_Click">
+                                <MenuItem.Icon>
+                                    <Image Source="./Resources/FloppyDisk_16p.png" Width="16" Height="16"/>
                                 </MenuItem.Icon>
                             </MenuItem>
                             <Separator/>

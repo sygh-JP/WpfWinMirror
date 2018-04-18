@@ -349,6 +349,15 @@ namespace WpfWinMirror.Properties {
         }
         
         /// <summary>
+        ///   Save window list as... に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string menuItemSaveWinListAs_Header {
+            get {
+                return ResourceManager.GetString("menuItemSaveWinListAs_Header", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Scale factor に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string menuItemScaleFactorRoot_Header {

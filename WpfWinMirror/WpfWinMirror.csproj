@@ -131,6 +131,7 @@
     <Content Include="CustomEffects\DarknessToOpacityEffect.hlsl" />
     <Content Include="CustomEffects\GrayscaleEffect.hlsl" />
     <Content Include="CustomEffects\NPInvertEffect.hlsl" />
+    <Resource Include="Resources\FloppyDisk_16p.png" />
     <Resource Include="Resources\generic_picture_16p.png" />
     <Resource Include="Resources\WpfWinMirror_icon_48p.png" />
     <Resource Include="Resources\Annotations_Info_16p.png" />
